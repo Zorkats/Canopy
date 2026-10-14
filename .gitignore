@@ -1,0 +1,16 @@
+# Local research workspace and analysis tooling, never published.
+_work/
+tools/
+
+# Build output
+build/
+cmake-build-*/
+dist/
+vcpkg_installed/
+
+# Local IDE and CMake state
+.vs/
+.idea/
+.vscode/
+CMakeUserPresets.json
+*.user
