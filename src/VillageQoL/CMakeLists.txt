@@ -13,7 +13,13 @@ add_library(VillageQoL SHARED
         event_fast_forward.cpp
         wheel_zoom.cpp
         key_binding_backup.cpp
+        villageqol_version.rc
 )
+
+# The release version (see the top CMakeLists.txt), for villageqol_version.rc.
+target_compile_definitions(VillageQoL PRIVATE
+        CANOPY_RELEASE="${CANOPY_RELEASE}"
+        "CANOPY_RELEASE_NUMBERS=${CANOPY_RELEASE_NUMBERS}")
 
 # Translated UI strings are written as UTF-8 literals.
 if(MSVC)
@@ -25,4 +31,4 @@ target_link_libraries(VillageQoL PRIVATE
         CanopyApi
 )
 
-install(TARGETS VillageQoL RUNTIME DESTINATION mods COMPONENT player)
+install(TARGETS VillageQoL RUNTIME DESTINATION mods COMPONENT villageqol)

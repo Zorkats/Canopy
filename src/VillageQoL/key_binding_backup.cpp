@@ -204,7 +204,7 @@ void Mirror() {
 }  // namespace
 
 bool Install() {
-    if (!MatchesSignatures(retail::kKeyBindingSignatures)) {
+    if (!RequirementsMet(retail::kKeyBindingRequirements)) {
         return false;
     }
     g_MapIndex = GameFunction<MapIndexFn>(retail::kU64MapIndex);

@@ -1,0 +1,60 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:refs="using:CanopyStudio.ViewModels.Create.Refs"
+             xmlns:views="using:CanopyStudio.Views.Create.Refs"
+             x:Class="CanopyStudio.Views.Create.Refs.SwapsFieldView"
+             x:DataType="refs:SwapsFieldViewModel">
+  <!-- A skin's swaps: the model's texture name and the texture drawn
+       instead, one per row. -->
+  <StackPanel Spacing="6">
+    <ItemsControl ItemsSource="{Binding Rows}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <StackPanel Spacing="6" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="refs:SwapRowViewModel">
+          <StackPanel Spacing="2">
+            <Grid ColumnDefinitions="2*,Auto,3*,Auto">
+              <TextBox VerticalAlignment="Top"
+                       Classes="mono"
+                       Watermark="Model texture name"
+                       AutomationProperties.Name="Model texture name"
+                       Text="{Binding Name}" />
+              <TextBlock Grid.Column="1"
+                         Classes="muted"
+                         Margin="8,10,8,0"
+                         VerticalAlignment="Top"
+                         Text="becomes" />
+              <views:RefPickerView Grid.Column="2" DataContext="{Binding Picker}" />
+              <Button Grid.Column="3"
+                      Classes="small"
+                      Margin="6,0,0,0"
+                      VerticalAlignment="Top"
+                      Content="Remove"
+                      ToolTip.Tip="Remove this swap"
+                      Command="{Binding RemoveCommand}" />
+            </Grid>
+            <TextBlock Classes="warn small"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding HasNameWarning}"
+                       Text="{Binding NameWarning}" />
+          </StackPanel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <Button Classes="small"
+            HorizontalAlignment="Left"
+            Content="Add swap"
+            Command="{Binding AddCommand}" />
+    <TextBlock Classes="muted small"
+               TextWrapping="Wrap"
+               IsVisible="{Binding HasNote}"
+               Text="{Binding Note}" />
+    <TextBlock Classes="warn small"
+               TextWrapping="Wrap"
+               IsVisible="{Binding HasWarning}"
+               Text="{Binding Warning}" />
+  </StackPanel>
+</UserControl>

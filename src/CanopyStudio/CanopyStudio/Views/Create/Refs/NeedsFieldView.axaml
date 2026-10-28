@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:refs="using:CanopyStudio.ViewModels.Create.Refs"
+             xmlns:views="using:CanopyStudio.Views.Create.Refs"
+             x:Class="CanopyStudio.Views.Create.Refs.NeedsFieldView"
+             x:DataType="refs:NeedsFieldViewModel">
+  <!-- A recipe's ingredients: an item and a count per row. -->
+  <StackPanel Spacing="6">
+    <ItemsControl ItemsSource="{Binding Rows}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <StackPanel Spacing="6" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="refs:NeedRowViewModel">
+          <StackPanel Spacing="2">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+              <views:RefPickerView DataContext="{Binding Picker}" />
+              <TextBox Grid.Column="1"
+                       Width="64"
+                       Margin="6,0,0,0"
+                       VerticalAlignment="Top"
+                       Classes="mono"
+                       Watermark="1"
+                       ToolTip.Tip="How many, 1 to 99; empty means one"
+                       AutomationProperties.Name="Count"
+                       Text="{Binding Count}" />
+              <Button Grid.Column="2"
+                      Classes="small"
+                      Margin="6,0,0,0"
+                      VerticalAlignment="Top"
+                      Content="Remove"
+                      ToolTip.Tip="Remove this ingredient"
+                      Command="{Binding RemoveCommand}" />
+            </Grid>
+            <TextBlock Classes="warn small"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding HasCountWarning}"
+                       Text="{Binding CountWarning}" />
+          </StackPanel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <Button Classes="small"
+            HorizontalAlignment="Left"
+            Content="Add ingredient"
+            Command="{Binding AddCommand}" />
+    <TextBlock Classes="warn small"
+               TextWrapping="Wrap"
+               IsVisible="{Binding HasWarning}"
+               Text="{Binding Warning}" />
+  </StackPanel>
+</UserControl>

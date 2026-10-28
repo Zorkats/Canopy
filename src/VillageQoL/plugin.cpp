@@ -57,6 +57,7 @@ CANOPY_MOD_EXPORT bool CanopyModInit(const CanopyApi* api) {
         return false;
     }
     g_ModuleBase = api->GameBase();
+    ResolveAddresses();
     host::Attach(api, CANOPY_NO_MOD);
     MigrateSettings();
     const CanopyMod mod = api->RegisterMod("VillageQoL", &kModName);
@@ -64,10 +65,11 @@ CANOPY_MOD_EXPORT bool CanopyModInit(const CanopyApi* api) {
         return false;
     }
     host::Attach(api, mod);
+    Log(AddressReport());
 
     // These run prompts, title returns and hotkeys from the tick, and the
-    // tick also needs the shared engine services its signatures cover.
-    const bool ticking = MatchesSignatures(retail::kSharedSignatures) && api->OnFrame(mod, &Tick, nullptr);
+    // tick also needs the shared engine services its address list covers.
+    const bool ticking = RequirementsMet(retail::kSharedRequirements) && api->OnFrame(mod, &Tick, nullptr);
     const bool bgmInfo = bgm_info::Install();
     const bool quickSave = ticking && quick_save::Install();
     const bool settingsHotkey = ticking && settings_hotkey::Install();

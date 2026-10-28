@@ -1,4 +1,4 @@
-// Canopy API, version 3.
+// Canopy API, version 4.
 //
 // The one header a mod for Village in the Shade needs. A mod is a 64-bit DLL
 // placed in the game's mods folder. The loader (dinput8.dll) loads every DLL
@@ -23,7 +23,7 @@ extern "C" {
 // The API version this header describes. The loader passes its own version
 // in CanopyApi.version; it is never lower than the version that added a
 // function, and functions are only ever appended.
-#define CANOPY_API_VERSION 3
+#define CANOPY_API_VERSION 4
 
 // Marks a mod's exported entry points.
 #ifdef __cplusplus
@@ -161,7 +161,8 @@ typedef struct CanopyApi {
         int32_t defaultPad
     );
     // A setting's current value: 0 or 1 for a toggle, the chosen index for a
-    // choice, the pad for a binding. fallback when setting is not valid.
+    // choice, the pad for a binding, the number for a slider (version 4).
+    // fallback when setting is not valid.
     // Values change while the game runs, so read them when you use them.
     int32_t (*GetSetting)(CanopySetting setting, int32_t fallback);
     // Full path of the mod's settings file, mods\<key>.ini, for a mod that
@@ -264,6 +265,50 @@ typedef struct CanopyApi {
     // case. Call it from CanopyModInit while the loader is still starting mods,
     // or from any thread after that. Added in version 3.
     uint32_t (*ModVersion)(const char* id);
+
+    // ---- Version 4 --------------------------------------------------------
+    // Check for these with CANOPY_HAS before calling them.
+
+    // Adds a setting that picks a whole number from min to max in steps of
+    // step, shown as a left and right selector of the numbers. GetSetting
+    // reads the number itself. max - min must be a whole number of steps,
+    // the range may hold at most 256 numbers, and defaultValue must be one of
+    // them. A saved number outside the range is clamped, then moved to the
+    // nearest step. During CanopyModInit only, like every Add function. Added
+    // in version 4.
+    CanopySetting (*AddSlider)(
+        CanopyMod mod, const char* key, const CanopyText* label, const CanopyText* help, int32_t min,
+        int32_t max, int32_t step, int32_t defaultValue
+    );
+
+    // Per-save data: values a mod keeps with the save being played. They
+    // live in memory while a game runs. When the game saves to slot N they
+    // are written to mods\CanopyData\slot<N>.ini, and when slot N loads they
+    // are read back, before CANOPY_EVENT_SAVE_LOADED. Reaching the title
+    // screen clears them, so a new game starts with none. Deleting slot N
+    // deletes its file. key follows the setting key rules; ints and strings
+    // share the keys. Any thread.
+
+    // Stores an int under key. Fails on a game build the loader cannot save
+    // on, and the reason is logged once. Added in version 4.
+    bool (*SetSaveInt)(CanopyMod mod, const char* key, int32_t value);
+    // The int stored under key, or fallback when there is none or the value
+    // is not a whole number. Added in version 4.
+    int32_t (*GetSaveInt)(CanopyMod mod, const char* key, int32_t fallback);
+    // Stores UTF-8 text under key: up to 1024 bytes, with no line breaks or
+    // other control characters. A mod keeps up to 1024 values. Added in
+    // version 4.
+    bool (*SetSaveString)(CanopyMod mod, const char* key, const char* value);
+    // Copies the text stored under key into buffer, size bytes, cut to fit
+    // and always terminated. A buffer of 1025 bytes holds any value. Returns
+    // false and writes "" when there is none. An int reads as its digits.
+    // Added in version 4.
+    bool (*GetSaveString)(CanopyMod mod, const char* key, char* buffer, uint32_t size);
+    // True when key has a value. Added in version 4.
+    bool (*HasSaveValue)(CanopyMod mod, const char* key);
+    // Removes the value under key. False when there was none. Added in
+    // version 4.
+    bool (*DeleteSaveValue)(CanopyMod mod, const char* key);
 } CanopyApi;
 
 // Exported by every mod. Register the mod, its settings, frame callbacks and

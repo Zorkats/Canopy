@@ -1,0 +1,168 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels"
+             xmlns:native="using:CanopyStudio.Core.Native"
+             xmlns:gviews="using:CanopyStudio.Views.Game"
+             x:Class="CanopyStudio.Views.TablesView"
+             x:DataType="vm:TablesViewModel">
+  <Grid RowDefinitions="Auto,*" Margin="24,20,24,16">
+    <StackPanel Spacing="2" Margin="0,0,0,16">
+      <TextBlock Classes="h2" Text="Tables" />
+      <TextBlock Classes="muted" TextWrapping="Wrap"
+                 Text="The game's database. A table Canopy has a schema for is a grid you can edit; edits are saved to the edits mod as patches." />
+    </StackPanel>
+
+    <Panel Grid.Row="1">
+      <!-- No game -->
+      <StackPanel IsVisible="{Binding NeedsGame}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="420">
+        <TextBlock Classes="h3" HorizontalAlignment="Center" Text="No game folder yet" />
+        <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap" Text="Choose where Village in the Shade is installed, and its tables show up here." />
+        <Button Classes="accent" HorizontalAlignment="Center" Content="Set up" Command="{Binding OpenSetupCommand}" />
+      </StackPanel>
+
+      <TextBlock IsVisible="{Binding IsListLoading}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Reading the archives..." />
+      <TextBlock IsVisible="{Binding ListError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                 Classes="error" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="520"
+                 Text="{Binding ListError}" />
+
+      <Grid IsVisible="{Binding IsListReady}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="200" MinWidth="140" />
+          <ColumnDefinition Width="8" />
+          <ColumnDefinition Width="3*" MinWidth="340" />
+          <ColumnDefinition Width="8" />
+          <ColumnDefinition Width="2*" MinWidth="340" />
+        </Grid.ColumnDefinitions>
+        <!-- Table list -->
+        <Border Classes="pane">
+          <DockPanel>
+            <TextBox DockPanel.Dock="Top" Margin="8" Text="{Binding TableFilter}" Watermark="Filter tables" />
+            <ListBox ItemsSource="{Binding VisibleTables}" SelectedItem="{Binding SelectedTable}" Background="Transparent">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Text="{Binding}" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+        </Border>
+        <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+        <!-- Rows, for a table without a schema -->
+        <Border Grid.Column="2" Classes="pane" IsVisible="{Binding !ShowsGrid}">
+          <Panel>
+            <TextBlock IsVisible="{Binding NoTableChosen}" Classes="muted" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" TextWrapping="Wrap" Text="Pick a table on the left to see its rows." />
+            <TextBlock IsVisible="{Binding IsTableLoading}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Reading the table..." />
+            <TextBlock IsVisible="{Binding TableError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                       Classes="error" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"
+                       Text="{Binding TableError}" />
+            <DockPanel IsVisible="{Binding HasTable}">
+              <StackPanel DockPanel.Dock="Top" Margin="14,12,14,8" Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <TextBlock Classes="h3" VerticalAlignment="Center" Text="{Binding TableTitle}" />
+                  <Border Classes="badge">
+                    <TextBlock Classes="muted small" Classes.warn="{Binding !TableHasSchema}" Text="{Binding TableKind}" />
+                  </Border>
+                </StackPanel>
+                <TextBlock Classes="faint small" Text="{Binding TableSummary}" />
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBox Text="{Binding RowFilter}" Watermark="Filter by index, id or enum name" />
+                  <Button Grid.Column="1" Margin="8,0,0,0" Content="Clear" Command="{Binding ClearRowFilterCommand}" />
+                </Grid>
+                <TextBlock Classes="faint small" IsVisible="{Binding RowsCaption, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Text="{Binding RowsCaption}" />
+              </StackPanel>
+              <DataGrid x:Name="RowsGrid" ItemsSource="{Binding VisibleRows}" SelectedItem="{Binding SelectedRow}">
+                <DataGrid.Columns>
+                  <DataGridTextColumn x:DataType="native:TableRow" Header="Index" Width="76" Binding="{Binding Index}" />
+                  <DataGridTextColumn x:DataType="native:TableRow" Header="Id" Width="90" Binding="{Binding Id}" />
+                  <DataGridTextColumn x:DataType="native:TableRow" Header="Enum name" Width="*" Binding="{Binding Enum}" />
+                  <DataGridTextColumn x:DataType="native:TableRow" Header="Bytes" Width="76" Binding="{Binding Size}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </DockPanel>
+          </Panel>
+        </Border>
+        <GridSplitter Grid.Column="3" ResizeDirection="Columns" IsVisible="{Binding !ShowsGrid}" />
+
+        <!-- Row detail -->
+        <Border Grid.Column="4" Classes="pane" IsVisible="{Binding !ShowsGrid}">
+          <Panel>
+            <TextBlock IsVisible="{Binding NoRowChosen}" Classes="muted" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" TextWrapping="Wrap" Text="Pick a row to see what is in it." />
+            <TextBlock IsVisible="{Binding IsRowLoading}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Reading the row..." />
+            <TextBlock IsVisible="{Binding RowError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                       Classes="error" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"
+                       Text="{Binding RowError}" />
+            <ScrollViewer IsVisible="{Binding HasRow}" HorizontalScrollBarVisibility="Disabled">
+              <StackPanel Margin="18,16" Spacing="18">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="h3" Text="{Binding RowTitle}" />
+                  <SelectableTextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding RowSubtitle}" />
+                </StackPanel>
+
+                <!-- Named fields, from the table's schema -->
+                <StackPanel Spacing="8" IsVisible="{Binding HasFields}">
+                  <TextBlock Classes="label" Text="FIELDS" />
+                  <ItemsControl ItemsSource="{Binding Fields}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:FieldItem">
+                        <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="0,6">
+                          <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="2">
+                              <TextBlock Classes="mono faint" Text="{Binding Path}" />
+                              <SelectableTextBlock TextWrapping="Wrap" Classes.muted="{Binding IsEmpty}" Text="{Binding ShownValue}" />
+                              <Button IsVisible="{Binding HasLink}" Margin="0,4,0,0" Padding="10,4" Classes="small"
+                                      Content="{Binding LinkText}" Command="{Binding Go}" />
+                            </StackPanel>
+                            <Border Grid.Column="1" Classes="badge" Margin="12,0,0,0" VerticalAlignment="Top">
+                              <TextBlock Classes="mono faint caption" Text="{Binding Type}" />
+                            </Border>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+
+                <!-- Texts, guessed for tables without a schema -->
+                <StackPanel Spacing="8" IsVisible="{Binding HasTexts}">
+                  <TextBlock Classes="label" Text="TEXTS THIS ROW POINTS AT (GUESSED)" />
+                  <TextBlock Classes="faint small" TextWrapping="Wrap"
+                             Text="This table has no schema yet, so Canopy Studio guesses: these are texts the row's bytes point at. The number is where in the row the pointer sits. Which field each one belongs to is unknown." />
+                  <ItemsControl ItemsSource="{Binding Texts}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:TextItem">
+                        <Grid ColumnDefinitions="64,*" Margin="0,3">
+                          <TextBlock Classes="mono faint" Text="{Binding OffsetText}" />
+                          <SelectableTextBlock Grid.Column="1" TextWrapping="Wrap" Text="{Binding Value}" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+                <TextBlock Classes="muted" IsVisible="{Binding NoTexts}" TextWrapping="Wrap"
+                           Text="This table has no schema yet, and this row points at no texts." />
+
+                <!-- Raw bytes -->
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="label" Text="RAW BYTES" />
+                  <Border Background="{DynamicResource StudioWindowBrush}" CornerRadius="{DynamicResource StudioRadius}" Padding="10,8">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                      <SelectableTextBlock Classes="mono muted" Text="{Binding HexText}" />
+                    </ScrollViewer>
+                  </Border>
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </Panel>
+        </Border>
+
+        <!-- A table with a schema: the editable grid -->
+        <Border Grid.Column="2" Grid.ColumnSpan="3" Classes="pane" IsVisible="{Binding ShowsGrid}">
+          <gviews:TableGridView DataContext="{Binding Grid}" />
+        </Border>
+      </Grid>
+    </Panel>
+  </Grid>
+</UserControl>

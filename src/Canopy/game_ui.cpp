@@ -109,7 +109,7 @@ uint64_t __fastcall Detour_GetLogText(void* gameLog, void* outText) {
 }  // namespace
 
 bool InstallToasts() {
-    if (!MatchesSignatures(retail::kToastSignatures)) {
+    if (!RequirementsMet(retail::kToastRequirements)) {
         return false;
     }
     g_PushLog = GameFunction<PushLogFn>(retail::kPushLog);
@@ -127,7 +127,7 @@ bool InstallToasts() {
 }
 
 bool InstallPopups() {
-    if (!MatchesSignatures(retail::kPopupSignatures)) {
+    if (!RequirementsMet(retail::kPopupRequirements)) {
         return false;
     }
     g_MakeLayerKey = GameFunction<MakeLayerKeyFn>(retail::kMakeLayerKey);

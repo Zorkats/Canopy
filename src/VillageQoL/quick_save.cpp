@@ -319,11 +319,20 @@ constexpr size_t kLoadMenuPatchCount = sizeof(retail::kLoadMenuPatches) / sizeof
 // =============================================================
 // UTILS
 // =============================================================
+// True when every site the build has holds the retail bytes and every site
+// that is not optional is there.
 bool MatchesPatchSites() {
     for (const retail::CodePatch& patch : retail::kLoadMenuPatches) {
-        const void* code = reinterpret_cast<const void*>(g_ModuleBase + patch.rva);
+        if (!patch.address->Found()) {
+            if (patch.optional) {
+                continue;
+            }
+            Log(std::string("Game address ") + patch.address->Name() + " was not found in this game build.");
+            return false;
+        }
+        const void* code = reinterpret_cast<const void*>(g_ModuleBase + *patch.address);
         if (std::memcmp(code, patch.original, patch.length) != 0) {
-            Log(std::string("Patch site mismatch at ") + patch.name + ", unsupported game build.");
+            Log(std::string("Patch site ") + patch.address->Name() + " does not hold the expected code.");
             return false;
         }
     }
@@ -1313,11 +1322,15 @@ void __fastcall Detour_LoadEventStart() {
 
 // =============================================================
 // HOOK INITIALIZATION
+// A site the build lacks, which only an optional patch may be, is skipped.
 bool WriteCode(const retail::CodePatch& patch, const uint8_t* bytes) {
-    void* code = reinterpret_cast<void*>(g_ModuleBase + patch.rva);
+    if (!patch.address->Found()) {
+        return true;
+    }
+    void* code = reinterpret_cast<void*>(g_ModuleBase + *patch.address);
     DWORD oldProtect = 0;
     if (!VirtualProtect(code, patch.length, PAGE_EXECUTE_READWRITE, &oldProtect)) {
-        Log(std::string("VirtualProtect failed for ") + patch.name + ".");
+        Log(std::string("VirtualProtect failed for ") + patch.address->Name() + ".");
         return false;
     }
     std::memcpy(code, bytes, patch.length);
@@ -1361,9 +1374,15 @@ void ResolveFunctions() {
 }  // namespace
 
 bool Install() {
-    // Signatures and every patch site are checked before anything is written,
+    // Quick save writes saves, so a build whose addresses were only searched
+    // for never gets it: a wrong address there could damage a save.
+    if (!CheckedBuild()) {
+        Log("Quick save needs a checked game build.");
+        return false;
+    }
+    // Every address and patch site is checked before anything is written,
     // so an updated game leaves this feature fully inert.
-    if (!MatchesSignatures(retail::kQuickSaveSignatures) || !MatchesPatchSites()) {
+    if (!RequirementsMet(retail::kQuickSaveRequirements) || !MatchesPatchSites()) {
         return false;
     }
     ResolveFunctions();

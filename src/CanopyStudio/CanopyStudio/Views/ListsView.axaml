@@ -1,0 +1,78 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels"
+             xmlns:pick="using:CanopyStudio.Controls.Pickers"
+             x:Class="CanopyStudio.Views.ListsView"
+             x:DataType="vm:ListsViewModel">
+  <Grid RowDefinitions="Auto,Auto,*" Margin="24,20,24,16">
+    <StackPanel Spacing="2" Margin="0,0,0,12">
+      <TextBlock Classes="h2" Text="Lists" />
+      <TextBlock Classes="muted"
+                 TextWrapping="Wrap"
+                 Text="The game's own items, villagers, whistles and recipes, with their names and icons. Read only." />
+    </StackPanel>
+
+    <DockPanel Grid.Row="1" Margin="0,0,0,12">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <TextBlock Classes="label" VerticalAlignment="Center" Text="NAMES IN" />
+        <ComboBox MinWidth="190"
+                  AutomationProperties.Name="Names in"
+                  ItemsSource="{Binding Languages}"
+                  SelectedItem="{Binding Language}" />
+      </StackPanel>
+      <ListBox Classes="tabs"
+               AutomationProperties.Name="Lists"
+               ItemsSource="{Binding Kinds}"
+               SelectedItem="{Binding SelectedKind}">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="4" />
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:ListKind">
+            <Grid RowDefinitions="*,Auto">
+              <TextBlock Margin="14,6,14,8" Text="{Binding Title}" />
+              <Border Grid.Row="1"
+                      Height="2"
+                      Background="{DynamicResource StudioAccentBrush}"
+                      IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
+
+    <Grid Grid.Row="2">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="3*" MinWidth="360" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="2*" MinWidth="260" />
+      </Grid.ColumnDefinitions>
+
+      <Border Classes="pane" Padding="10">
+        <pick:VanillaPicker Kind="{Binding SelectedKind.Kind}"
+                            Assets="{Binding Assets}"
+                            SelectedId="{Binding PickedId}" />
+      </Border>
+
+      <Border Grid.Column="2" Classes="pane" Padding="16" VerticalAlignment="Top">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="label" Text="PICKED" />
+          <TextBlock Classes="muted"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding !HasPick}"
+                     Text="Pick one on the left to see where it lives in the game's tables." />
+          <StackPanel Spacing="10" IsVisible="{Binding HasPick}">
+            <SelectableTextBlock Classes="mono" Text="{Binding PickText}" />
+            <Button HorizontalAlignment="Left" Content="Open its row in Tables" Command="{Binding OpenRowCommand}" />
+          </StackPanel>
+          <TextBlock Classes="faint small"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding !Assets.IsReady}"
+                     Text="Names and icons are read from the game as you look. First-time setup, run again from Setup, copies them all at once." />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

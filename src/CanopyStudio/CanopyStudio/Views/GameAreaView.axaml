@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels"
+             x:Class="CanopyStudio.Views.GameAreaView"
+             x:DataType="vm:GameAreaViewModel">
+  <DockPanel>
+    <Border DockPanel.Dock="Top"
+            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="20,10,20,0">
+      <ListBox Classes="tabs"
+               AutomationProperties.Name="Game sections"
+               ItemsSource="{Binding Sections}"
+               SelectedItem="{Binding CurrentSection}">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="4" />
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:PageViewModel">
+            <Grid RowDefinitions="*,Auto">
+              <TextBlock Margin="14,6,14,8" Text="{Binding Title}" />
+              <Border Grid.Row="1"
+                      Height="2"
+                      Background="{DynamicResource StudioAccentBrush}"
+                      IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Border>
+
+    <ContentControl DockPanel.Dock="Top"
+                    Content="{Binding EditsBar}"
+                    IsVisible="{Binding ShowsEditsBar}" />
+
+    <ContentControl Content="{Binding CurrentSection}" />
+  </DockPanel>
+</UserControl>

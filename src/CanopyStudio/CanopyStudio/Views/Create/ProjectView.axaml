@@ -1,0 +1,428 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:cvm="using:CanopyStudio.ViewModels.Create"
+             xmlns:native="using:CanopyStudio.Core.Native"
+             xmlns:cviews="using:CanopyStudio.Views.Create"
+             x:Class="CanopyStudio.Views.Create.ProjectView"
+             x:DataType="cvm:ProjectViewModel">
+  <UserControl.Resources>
+    <cviews:FieldViewLocator x:Key="FieldEditor" />
+
+    <!-- One problem: a marker for its severity, then its message. -->
+    <DataTemplate x:Key="DiagnosticRow" x:DataType="native:ModDiagnostic">
+      <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+        <Ellipse Classes="marker"
+                 Classes.fail="{Binding Severity, Converter={x:Static cviews:CreateConverters.IsError}}"
+                 Classes.warn="{Binding Severity, Converter={x:Static cviews:CreateConverters.IsWarning}}"
+                 Margin="0,5,8,0"
+                 VerticalAlignment="Top" />
+        <SelectableTextBlock Grid.Column="1" Classes="small" TextWrapping="Wrap" Text="{Binding Message}" />
+      </Grid>
+    </DataTemplate>
+
+    <!-- One field, with no card: its label, its editor, its help, then its error and problems. -->
+    <DataTemplate x:Key="FieldItem" x:DataType="cvm:FieldViewModel">
+      <Grid ColumnDefinitions="2,*">
+        <!-- The rule on the left: the error rule, or the warning rule when there is no error -->
+        <Panel>
+          <Border Width="2" Background="{DynamicResource StudioFailBrush}" IsVisible="{Binding HasFailure}" />
+          <Border Width="2" Background="{DynamicResource StudioAccentBrush}" IsVisible="{Binding HasWarningOnly}" />
+        </Panel>
+        <StackPanel Grid.Column="1" Spacing="6">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="label" VerticalAlignment="Center" Text="{Binding Label}" />
+            <Border Classes="badge" VerticalAlignment="Center" IsVisible="{Binding Required}">
+              <TextBlock Classes="caption" Text="Required" />
+            </Border>
+          </StackPanel>
+          <ContentControl Content="{Binding}" ContentTemplate="{StaticResource FieldEditor}" />
+          <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{Binding Help}" />
+          <TextBlock Classes="error small"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}"
+                     Text="{Binding Error}" />
+          <ItemsControl ItemsSource="{Binding Problems}"
+                        IsVisible="{Binding HasProblems}"
+                        ItemTemplate="{StaticResource DiagnosticRow}" />
+        </StackPanel>
+      </Grid>
+    </DataTemplate>
+
+    <ItemsPanelTemplate x:Key="FieldPanel">
+      <StackPanel Spacing="16" />
+    </ItemsPanelTemplate>
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <!-- A tile is a card of 160 by 180. The padding keeps the 144 by 128 picture inside the 1 px border. -->
+    <Style Selector="Button.tile">
+      <Setter Property="Width" Value="160" />
+      <Setter Property="Height" Value="180" />
+      <Setter Property="Margin" Value="0,0,12,12" />
+      <Setter Property="Padding" Value="7,6" />
+      <Setter Property="CornerRadius" Value="{DynamicResource StudioRadius}" />
+    </Style>
+    <Style Selector="Button.tile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioSelectedHoverBrush}" />
+    </Style>
+    <!-- A selected tile has a 2 px accent border. Its padding shrinks by 1 px, so the picture does not move. -->
+    <Style Selector="Button.tile.selected">
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="Padding" Value="6,5" />
+    </Style>
+    <Style Selector="Button.tile.selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioSelectedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    </Style>
+    <Style Selector="Button.tile.selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioSelectedHoverBrush}" />
+    </Style>
+    <!-- The "+ New" tile has no border of its own: a dashed rule is drawn inside it. -->
+    <Style Selector="Button.tile.isNew">
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="40,Auto,*,34,Auto">
+    <!-- Toolbar: the three views, and the switch that shows the raw rows -->
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+      <ListBox Classes="tabs"
+               AutomationProperties.Name="View"
+               SelectedIndex="{Binding ViewIndex}">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="4" />
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBoxItem AutomationProperties.Name="Content">
+          <Grid RowDefinitions="*,Auto">
+            <TextBlock Margin="14,6,14,8" Text="Content" />
+            <Border Grid.Row="1" Height="2" Background="{DynamicResource StudioAccentBrush}" IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+          </Grid>
+        </ListBoxItem>
+        <ListBoxItem AutomationProperties.Name="canopy.ini">
+          <Grid RowDefinitions="*,Auto">
+            <TextBlock Margin="14,6,14,8" Text="canopy.ini" />
+            <Border Grid.Row="1" Height="2" Background="{DynamicResource StudioAccentBrush}" IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+          </Grid>
+        </ListBoxItem>
+        <ListBoxItem AutomationProperties.Name="Lua">
+          <Grid RowDefinitions="*,Auto">
+            <TextBlock Margin="14,6,14,8" Text="Lua" />
+            <Border Grid.Row="1" Height="2" Background="{DynamicResource StudioAccentBrush}" IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+          </Grid>
+        </ListBoxItem>
+      </ListBox>
+      <CheckBox Grid.Column="1"
+                Margin="0,0,16,0"
+                Content="Advanced"
+                VerticalAlignment="Center"
+                AutomationProperties.Name="Advanced"
+                ToolTip.Tip="Show raw rows and sections Canopy does not read."
+                IsChecked="{Binding ShowAdvanced, Mode=TwoWay}" />
+    </Grid>
+
+    <SelectableTextBlock Grid.Row="1"
+                         Classes="error"
+                         Margin="24,8,24,0"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding HasMessage}"
+                         Text="{Binding Message}" />
+
+    <Panel Grid.Row="2">
+      <!-- canopy.ini as text, full width -->
+      <Border Classes="pane" Margin="24,16" IsVisible="{Binding ShowRaw}">
+        <ContentControl Content="{Binding Raw}" />
+      </Border>
+
+      <!-- The Lua files: the list at the left, the open file at the right -->
+      <Border Classes="pane" Margin="24,16" IsVisible="{Binding ShowLua}">
+        <ContentControl Content="{Binding Lua}" />
+      </Border>
+
+      <!-- The gallery, with the drawer at its right -->
+      <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding ShowForm}">
+        <Grid.KeyBindings>
+          <KeyBinding Gesture="Escape" Command="{Binding CloseDrawerCommand}" />
+        </Grid.KeyBindings>
+
+        <ScrollViewer Margin="24,16">
+          <StackPanel Spacing="24">
+            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Pick a tile to edit it, or add one with + New." />
+            <ItemsControl ItemsSource="{Binding Groups}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="24" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="cvm:ContentGroupViewModel">
+                  <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock FontSize="13" FontWeight="SemiBold" Text="{Binding Title}" />
+                        <TextBlock Classes="faint small" Text="{Binding Count}" />
+                      </StackPanel>
+                      <Button Grid.Column="1"
+                              Classes="small"
+                              Content="+ New"
+                              IsVisible="{Binding CanAdd}"
+                              Command="{Binding AddNewCommand}" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Tiles}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="cvm:ContentTileViewModel">
+                          <Button Classes="tile"
+                                  Classes.selected="{Binding IsSelected}"
+                                  Classes.isNew="{Binding IsNew}"
+                                  Command="{Binding OpenCommand}"
+                                  AutomationProperties.Name="{Binding AccessibleName}"
+                                  ToolTip.Tip="{Binding Title}">
+                            <Panel>
+                              <Grid RowDefinitions="128,Auto,Auto" RowSpacing="2" IsVisible="{Binding !IsNew}">
+                                <cviews:ContentThumbnail Grid.Row="0" Art="{Binding Art}" Images="{Binding Images}" />
+                                <TextBlock Grid.Row="1"
+                                           FontSize="13"
+                                           TextWrapping="NoWrap"
+                                           TextTrimming="CharacterEllipsis"
+                                           Text="{Binding Title}" />
+                                <TextBlock Grid.Row="2"
+                                           Classes="mono small faint"
+                                           TextWrapping="NoWrap"
+                                           TextTrimming="CharacterEllipsis"
+                                           Text="{Binding Subtitle}" />
+                              </Grid>
+
+                              <!-- The "+ New" tile: a dashed rule, a plus sign and the kind's name -->
+                              <Grid IsVisible="{Binding IsNew}">
+                                <Rectangle Margin="1"
+                                           Stretch="Fill"
+                                           Stroke="{DynamicResource StudioBorderBrush}"
+                                           StrokeThickness="1"
+                                           StrokeDashArray="4,3"
+                                           RadiusX="6"
+                                           RadiusY="6" />
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                                  <TextBlock HorizontalAlignment="Center" FontSize="24" Text="+" />
+                                  <TextBlock Classes="muted small" HorizontalAlignment="Center" Text="{Binding Title}" />
+                                </StackPanel>
+                              </Grid>
+
+                              <!-- The left rule: the error rule when there is an error, else the warning rule -->
+                              <Border Width="2"
+                                      HorizontalAlignment="Left"
+                                      Background="{DynamicResource StudioFailBrush}"
+                                      IsVisible="{Binding HasErrors}" />
+                              <Border Width="2"
+                                      HorizontalAlignment="Left"
+                                      Background="{DynamicResource StudioAccentBrush}"
+                                      IsVisible="{Binding HasWarningsOnly}" />
+                              <Ellipse Classes="marker"
+                                       Classes.fail="{Binding HasErrors}"
+                                       Classes.warn="{Binding HasWarningsOnly}"
+                                       Width="12"
+                                       Height="12"
+                                       Margin="0,4,4,0"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Top"
+                                       IsVisible="{Binding HasProblems}"
+                                       ToolTip.Tip="{Binding ProblemText}" />
+                            </Panel>
+                          </Button>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+
+        <!-- The drawer: the picked section, its form or note, or the draft of a new section -->
+        <Border Grid.Column="1"
+                Width="360"
+                IsVisible="{Binding ShowDrawer}"
+                Background="{DynamicResource StudioSurfaceBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1,0,0,0">
+          <ScrollViewer>
+            <StackPanel Margin="16" Spacing="14">
+              <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <Border Classes="badge" VerticalAlignment="Center">
+                  <TextBlock Classes="caption" Text="{Binding DrawerKindTitle}" />
+                </Border>
+                <HyperlinkButton Grid.Column="2"
+                                 Padding="0"
+                                 VerticalAlignment="Center"
+                                 IsVisible="{Binding IsCreating}"
+                                 Content="{Binding NewSection.DocText}"
+                                 NavigateUri="{Binding NewSection.DocUri}"
+                                 ToolTip.Tip="{Binding NewSection.DocUrl}" />
+                <HyperlinkButton Grid.Column="2"
+                                 Padding="0"
+                                 VerticalAlignment="Center"
+                                 IsVisible="{Binding HasForm}"
+                                 Content="{Binding Form.DocText}"
+                                 NavigateUri="{Binding Form.DocUri}"
+                                 ToolTip.Tip="{Binding Form.DocUrl}" />
+                <Button Grid.Column="3"
+                        Classes="small"
+                        Margin="8,0,0,0"
+                        Content="X"
+                        Command="{Binding CloseDrawerCommand}"
+                        AutomationProperties.Name="Close"
+                        ToolTip.Tip="Close" />
+              </Grid>
+
+              <TextBlock Classes="h2" TextWrapping="Wrap" IsVisible="{Binding IsCreating}" Text="{Binding NewSection.Title}" />
+              <TextBlock Classes="h2" TextWrapping="Wrap" IsVisible="{Binding !IsCreating}" Text="{Binding SelectedTile.Title}" />
+
+              <!-- The picked section as canopy.ini writes it, with Rename and Remove where they apply -->
+              <StackPanel Spacing="8" IsVisible="{Binding HasSelection}">
+                <StackPanel Spacing="8" IsVisible="{Binding !IsRenaming}">
+                  <SelectableTextBlock Classes="mono small"
+                                       Foreground="{DynamicResource StudioFaintBrush}"
+                                       Text="{Binding SectionText}" />
+                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding CanRename}">
+                    <Button Classes="small" Content="Rename..." Command="{Binding StartRenameCommand}" />
+                    <Button Classes="small" Content="Remove" Command="{Binding RemoveCommand}" />
+                  </StackPanel>
+                </StackPanel>
+
+                <!-- Renaming takes the place of the section line and its buttons -->
+                <Border Classes="card" Padding="10" IsVisible="{Binding IsRenaming}">
+                  <StackPanel Spacing="8">
+                    <TextBlock Classes="label" Text="New key" />
+                    <TextBox AutomationProperties.Name="New key"
+                             FontFamily="{DynamicResource StudioMono}"
+                             Text="{Binding RenameKey}">
+                      <TextBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding ConfirmRenameCommand}" />
+                        <KeyBinding Gesture="Escape" Command="{Binding CancelRenameCommand}" />
+                      </TextBox.KeyBindings>
+                    </TextBox>
+                    <TextBlock Classes="error small"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding HasRenameProblem}"
+                               Text="{Binding RenameProblem}" />
+                    <TextBlock Classes="faint small"
+                               TextWrapping="Wrap"
+                               Text="Other parts of the mod that name this key, and Lua that uses it, are not changed." />
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                      <Button Classes="small" Content="Cancel" Command="{Binding CancelRenameCommand}" />
+                      <Button Classes="small accent" Content="Rename" Command="{Binding ConfirmRenameCommand}" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+
+              <!-- Create mode: the key and the name the new section starts with -->
+              <StackPanel Spacing="12" IsVisible="{Binding IsCreating}">
+                <StackPanel Spacing="6" IsVisible="{Binding NewSection.NeedsKey}">
+                  <TextBlock Classes="label" Text="Key" />
+                  <TextBox AutomationProperties.Name="Key of the new section"
+                           FontFamily="{DynamicResource StudioMono}"
+                           Watermark="Key, such as Lantern"
+                           Text="{Binding NewSection.Key}">
+                    <TextBox.KeyBindings>
+                      <KeyBinding Gesture="Enter" Command="{Binding NewSection.AddCommand}" />
+                      <KeyBinding Gesture="Escape" Command="{Binding NewSection.CancelCommand}" />
+                    </TextBox.KeyBindings>
+                  </TextBox>
+                  <TextBlock Classes="error small"
+                             TextWrapping="Wrap"
+                             IsVisible="{Binding NewSection.HasProblem}"
+                             Text="{Binding NewSection.Problem}" />
+                </StackPanel>
+                <StackPanel Spacing="6" IsVisible="{Binding NewSection.HasNameField}">
+                  <TextBlock Classes="label" Text="{Binding NewSection.NameLabel}" />
+                  <TextBox AutomationProperties.Name="{Binding NewSection.NameLabel}"
+                           Text="{Binding NewSection.Name}">
+                    <TextBox.KeyBindings>
+                      <KeyBinding Gesture="Enter" Command="{Binding NewSection.AddCommand}" />
+                      <KeyBinding Gesture="Escape" Command="{Binding NewSection.CancelCommand}" />
+                    </TextBox.KeyBindings>
+                  </TextBox>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                  <Button Classes="small" Content="Cancel" Command="{Binding NewSection.CancelCommand}" />
+                  <Button Classes="small accent" Content="Add" Command="{Binding NewSection.AddCommand}" />
+                </StackPanel>
+              </StackPanel>
+
+              <!-- A section with no form: why, and a way to its lines in canopy.ini -->
+              <StackPanel Spacing="10" IsVisible="{Binding HasOtherNote}">
+                <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding OtherNote}" />
+                <Button Classes="small"
+                        HorizontalAlignment="Left"
+                        Content="Show in canopy.ini"
+                        Command="{Binding ShowSelectedInIniCommand}" />
+              </StackPanel>
+
+              <!-- The picked tile's form: its problems, its main fields, "More options", then the keys it does not edit -->
+              <StackPanel Spacing="16" IsVisible="{Binding HasForm}">
+                <ItemsControl ItemsSource="{Binding Form.SectionProblems}"
+                              IsVisible="{Binding Form.HasSectionProblems}"
+                              ItemTemplate="{StaticResource DiagnosticRow}" />
+                <TextBlock Classes="faint small"
+                           TextWrapping="Wrap"
+                           Text="{Binding Form.SettingNote}"
+                           IsVisible="{Binding Form.IsSetting}" />
+                <ItemsControl x:Name="MainFields"
+                              ItemsSource="{Binding Form.MainFields}"
+                              ItemTemplate="{StaticResource FieldItem}"
+                              ItemsPanel="{StaticResource FieldPanel}" />
+                <Expander Header="More options"
+                          IsVisible="{Binding Form.HasMoreFields}"
+                          IsExpanded="{Binding Form.MoreOpen, Mode=TwoWay}">
+                  <ItemsControl x:Name="MoreFields"
+                                ItemsSource="{Binding Form.MoreFields}"
+                                ItemTemplate="{StaticResource FieldItem}"
+                                ItemsPanel="{StaticResource FieldPanel}" />
+                </Expander>
+                <TextBlock Classes="faint small"
+                           TextWrapping="Wrap"
+                           Text="{Binding Form.IgnoredNote}"
+                           IsVisible="{Binding Form.IgnoredNote, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Border>
+      </Grid>
+    </Panel>
+
+    <!-- Problems: the strip, and below it the list while the strip is open -->
+    <Border Grid.Row="3"
+            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="12,0">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="10">
+        <TextBlock Classes="label" VerticalAlignment="Center" Text="PROBLEMS" />
+        <TextBlock Grid.Column="1" Classes="small muted" VerticalAlignment="Center" Text="{Binding ProblemsSummary}" />
+        <Ellipse Grid.Column="2"
+                 Classes="marker"
+                 Classes.fail="{Binding HasProblemErrors}"
+                 VerticalAlignment="Center"
+                 IsVisible="{Binding HasProblemErrors}" />
+        <Button Grid.Column="4"
+                Classes="small"
+                Content="{Binding ProblemsToggleText}"
+                AutomationProperties.Name="Problems list"
+                Command="{Binding ToggleProblemsCommand}" />
+      </Grid>
+    </Border>
+    <ContentControl Grid.Row="4"
+                    Height="180"
+                    Padding="12,6"
+                    Background="{DynamicResource StudioSurfaceBrush}"
+                    IsVisible="{Binding IsProblemsOpen}"
+                    Content="{Binding Problems}" />
+  </Grid>
+</UserControl>

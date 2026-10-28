@@ -1,0 +1,87 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Forest dark: green-gray neutrals from deepest to lightest, one amber
+       accent. Warnings borrow the accent; only failures get their own red.
+       These are the defaults and what previews show: at run time
+       AppearanceService replaces every brush here with the worn theme's
+       (CanopyStudio.Core StudioThemes), so a view never names a colour. -->
+  <SolidColorBrush x:Key="StudioWindowBrush" Color="#101613" />
+  <SolidColorBrush x:Key="StudioRailBrush" Color="#131B17" />
+  <SolidColorBrush x:Key="StudioStatusBrush" Color="#131B17" />
+  <SolidColorBrush x:Key="StudioSurfaceBrush" Color="#18211D" />
+  <SolidColorBrush x:Key="StudioRaisedBrush" Color="#202B26" />
+  <SolidColorBrush x:Key="StudioBorderBrush" Color="#2A3731" />
+  <SolidColorBrush x:Key="StudioTextBrush" Color="#E4EBE6" />
+  <SolidColorBrush x:Key="StudioMutedBrush" Color="#9AA79F" />
+  <SolidColorBrush x:Key="StudioFaintBrush" Color="#808E86" />
+  <SolidColorBrush x:Key="StudioAccentBrush" Color="#E3A54A" />
+  <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="#ECB664" />
+  <SolidColorBrush x:Key="StudioAccentPressedBrush" Color="#CF9440" />
+  <SolidColorBrush x:Key="StudioOnAccentBrush" Color="#1B1408" />
+  <!-- The accent ladder: 80, 50, 30 and 20 percent. -->
+  <SolidColorBrush x:Key="StudioAccent80Brush" Color="#CCE3A54A" />
+  <SolidColorBrush x:Key="StudioAccent50Brush" Color="#80E3A54A" />
+  <SolidColorBrush x:Key="StudioAccent30Brush" Color="#4CE3A54A" />
+  <SolidColorBrush x:Key="StudioAccent20Brush" Color="#33E3A54A" />
+  <SolidColorBrush x:Key="StudioSelectedBrush" Color="#2B3932" />
+  <SolidColorBrush x:Key="StudioSelectedHoverBrush" Color="#31413A" />
+  <SolidColorBrush x:Key="StudioPassBrush" Color="#7DB48A" />
+  <SolidColorBrush x:Key="StudioFailBrush" Color="#E07B6B" />
+
+  <!-- Fluent paints list, tree and combo selections with the accent; here a
+       selection is a lighter green, so amber stays for actions. -->
+  <SolidColorBrush x:Key="SystemControlHighlightListAccentLowBrush" Color="#2B3932" />
+  <SolidColorBrush x:Key="SystemControlHighlightListAccentMediumBrush" Color="#31413A" />
+  <SolidColorBrush x:Key="SystemControlHighlightListAccentHighBrush" Color="#374940" />
+  <SolidColorBrush x:Key="TreeViewItemBackgroundSelected" Color="#2B3932" />
+  <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPointerOver" Color="#31413A" />
+  <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPressed" Color="#374940" />
+  <SolidColorBrush x:Key="TreeViewItemForegroundSelected" Color="#E4EBE6" />
+  <SolidColorBrush x:Key="TreeViewItemForegroundSelectedPointerOver" Color="#E4EBE6" />
+  <SolidColorBrush x:Key="TreeViewItemForegroundSelectedPressed" Color="#E4EBE6" />
+  <SolidColorBrush x:Key="DataGridRowSelectedBackgroundBrush" Color="#2B3932" />
+  <SolidColorBrush x:Key="DataGridRowSelectedHoveredBackgroundBrush" Color="#31413A" />
+  <SolidColorBrush x:Key="DataGridRowSelectedUnfocusedBackgroundBrush" Color="#2B3932" />
+  <SolidColorBrush x:Key="DataGridRowSelectedHoveredUnfocusedBackgroundBrush" Color="#31413A" />
+  <x:Double x:Key="DataGridRowSelectedBackgroundOpacity">1</x:Double>
+  <x:Double x:Key="DataGridRowSelectedHoveredBackgroundOpacity">1</x:Double>
+  <x:Double x:Key="DataGridRowSelectedUnfocusedBackgroundOpacity">1</x:Double>
+  <x:Double x:Key="DataGridRowSelectedHoveredUnfocusedBackgroundOpacity">1</x:Double>
+  <SolidColorBrush x:Key="DataGridColumnHeaderBackgroundBrush" Color="Transparent" />
+  <SolidColorBrush x:Key="DataGridColumnHeaderForegroundBrush" Color="#9AA79F" />
+
+  <!-- One radius for every corner, Fluent's controls included. -->
+  <CornerRadius x:Key="StudioRadius">6</CornerRadius>
+  <CornerRadius x:Key="ControlCornerRadius">6</CornerRadius>
+  <CornerRadius x:Key="OverlayCornerRadius">6</CornerRadius>
+
+  <!-- Two voices: the display face for headings, the body face for the rest.
+       Both are the system default until the game's fonts are copied; then
+       they are Lora and Resource Han Rounded TC. -->
+  <FontFamily x:Key="StudioDisplayFont">$Default</FontFamily>
+  <FontFamily x:Key="StudioBodyFont">$Default</FontFamily>
+  <FontWeight x:Key="StudioDisplayWeight">SemiBold</FontWeight>
+  <FontFamily x:Key="StudioMono">Cascadia Mono, Consolas, Courier New</FontFamily>
+
+  <!-- Type scale -->
+  <x:Double x:Key="StudioH1Size">26</x:Double>
+  <x:Double x:Key="StudioH2Size">17</x:Double>
+  <x:Double x:Key="StudioH3Size">14</x:Double>
+  <x:Double x:Key="StudioBrandSize">18</x:Double>
+  <x:Double x:Key="StudioStatSize">22</x:Double>
+  <x:Double x:Key="StudioSmallSize">12</x:Double>
+  <x:Double x:Key="StudioCaptionSize">11</x:Double>
+
+  <!-- How much of the backdrop art shows over the black window. -->
+  <x:Double x:Key="StudioBackdropOpacity">0.25</x:Double>
+
+  <!-- Behind texture previews, so transparent pixels show as a checkerboard. -->
+  <DrawingBrush x:Key="StudioCheckerBrush" TileMode="Tile" DestinationRect="0,0,16,16">
+    <DrawingBrush.Drawing>
+      <DrawingGroup>
+        <GeometryDrawing Brush="#1A2420" Geometry="M0,0 H16 V16 H0 Z" />
+        <GeometryDrawing Brush="#222E29" Geometry="M0,0 H8 V8 H0 Z M8,8 H16 V16 H8 Z" />
+      </DrawingGroup>
+    </DrawingBrush.Drawing>
+  </DrawingBrush>
+</ResourceDictionary>

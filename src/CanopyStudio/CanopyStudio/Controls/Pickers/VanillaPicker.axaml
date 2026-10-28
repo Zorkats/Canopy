@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pick="using:CanopyStudio.Controls.Pickers"
+             xmlns:core="using:CanopyStudio.Core.Pickers"
+             x:Class="CanopyStudio.Controls.Pickers.VanillaPicker">
+  <UserControl.Styles>
+    <Style Selector="ListBox#Rows ListBoxItem">
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="CornerRadius" Value="{DynamicResource StudioRadius}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid x:Name="Root" x:DataType="pick:VanillaPickerViewModel" RowDefinitions="Auto,Auto,*">
+    <TextBox x:Name="SearchBox"
+             Text="{Binding Search}"
+             Watermark="Search by name, enum name or id" />
+    <ComboBox x:Name="GroupBox"
+              Grid.Row="1"
+              Margin="0,8,0,0"
+              HorizontalAlignment="Stretch"
+              IsVisible="{Binding HasGroups}"
+              ItemsSource="{Binding Groups}"
+              SelectedItem="{Binding SelectedGroup}">
+      <ComboBox.ItemTemplate>
+        <DataTemplate x:DataType="pick:PickerGroupOption">
+          <TextBlock Text="{Binding Text}" />
+        </DataTemplate>
+      </ComboBox.ItemTemplate>
+    </ComboBox>
+
+    <Panel Grid.Row="2" Margin="0,8,0,0">
+      <TextBlock IsVisible="{Binding IsLoading}"
+                 Classes="muted"
+                 Margin="12"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 Text="Reading the game's list..." />
+      <TextBlock IsVisible="{Binding NeedsGame}"
+                 Classes="muted"
+                 Margin="12"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 TextAlignment="Center"
+                 TextWrapping="Wrap"
+                 Text="Open the game folder in Setup to pick from the game's own list." />
+      <TextBlock IsVisible="{Binding NoMatches}"
+                 Classes="muted"
+                 Margin="12"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 TextAlignment="Center"
+                 TextWrapping="Wrap"
+                 Text="Nothing matches the search. Try fewer letters or another group." />
+      <ListBox x:Name="Rows"
+               IsVisible="{Binding HasItems}"
+               Background="Transparent"
+               ItemsSource="{Binding Items}"
+               SelectedItem="{Binding Highlighted}">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="core:PickerItem">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <pick:PickerIcon IconId="{Binding Entry.Icon}"
+                               Assets="{Binding $parent[pick:VanillaPicker].Assets}" />
+              <TextBlock Grid.Column="1"
+                         Margin="10,0"
+                         VerticalAlignment="Center"
+                         TextTrimming="CharacterEllipsis"
+                         Classes.muted="{Binding !HasName}"
+                         Text="{Binding Name}" />
+              <TextBlock Grid.Column="2"
+                         Classes="mono muted"
+                         VerticalAlignment="Center"
+                         Text="{Binding IdText}" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Panel>
+  </Grid>
+</UserControl>

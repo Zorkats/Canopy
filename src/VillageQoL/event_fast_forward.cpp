@@ -388,7 +388,7 @@ bool TickSkip(uint8_t* timeManager) {
 }  // namespace
 
 bool Install() {
-    if (!MatchesSignatures(retail::kEventFastForwardSignatures)) {
+    if (!RequirementsMet(retail::kEventFastForwardRequirements)) {
         return false;
     }
     g_PadPushCommand = GameFunction<PadPushCommandFn>(retail::kPadPushCommand);
@@ -422,7 +422,7 @@ bool Install() {
     );
     g_TextSetting = host::AddToggle("FastForwardText", kTextLabels, kTextHelp, true);
     // The skip is optional: fast forward works without it.
-    if (MatchesSignatures(retail::kEventSkipSignatures)) {
+    if (RequirementsMet(retail::kEventSkipRequirements)) {
         g_PadDatabase = GameFunction<PadDatabaseFn>(retail::kPadDatabase);
         g_U64MapFind = GameFunction<U64MapFindFn>(retail::kU64MapFind);
         g_ResolvePad = GameFunction<ResolvePadFn>(retail::kResolvePad);

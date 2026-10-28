@@ -1,0 +1,179 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels.Game"
+             xmlns:gviews="using:CanopyStudio.Views.Game"
+             x:Class="CanopyStudio.Views.Game.GameArtView"
+             x:DataType="vm:GameArtViewModel">
+  <Grid RowDefinitions="Auto,Auto,*" Margin="24,20,24,16">
+    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+      <StackPanel Spacing="2" VerticalAlignment="Center">
+        <TextBlock Classes="h2" Text="Art" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Every texture of the game. Export them as PNG, or replace one through the edits mod." />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsReady}">
+        <TextBox Width="300" Text="{Binding Filter}" Watermark="Filter by id, enum name or file" />
+        <Button Content="Clear" Command="{Binding ClearFilterCommand}" />
+        <CheckBox VerticalAlignment="Center" IsChecked="{Binding ChangedOnly}" Content="Changed only" />
+        <Button Content="Export all filtered" Command="{Binding ExportAllCommand}" IsEnabled="{Binding !IsExporting}" />
+      </StackPanel>
+    </Grid>
+
+    <!-- What the last action did, and an export under way -->
+    <StackPanel Grid.Row="1" Spacing="6" Margin="0,0,0,12">
+      <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsExporting}">
+        <TextBlock Classes="muted" VerticalAlignment="Center" Text="{Binding ExportProgress}" />
+        <Button Classes="small" Content="Stop" Command="{Binding CancelExportCommand}" />
+      </StackPanel>
+      <SelectableTextBlock IsVisible="{Binding HasStatus}" TextWrapping="Wrap"
+                           Classes.error="{Binding StatusIsError}" Classes.muted="{Binding !StatusIsError}"
+                           Text="{Binding Status}" />
+      <Expander IsVisible="{Binding HasExportProblems}" Header="Textures that could not be exported">
+        <ScrollViewer MaxHeight="160">
+          <ItemsControl ItemsSource="{Binding ExportProblems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <SelectableTextBlock Classes="small" TextWrapping="Wrap" Text="{Binding}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Expander>
+    </StackPanel>
+
+    <Panel Grid.Row="2">
+      <!-- No game -->
+      <StackPanel IsVisible="{Binding NeedsGame}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="420">
+        <TextBlock Classes="h3" HorizontalAlignment="Center" Text="No game folder yet" />
+        <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap" Text="Choose where Village in the Shade is installed on the Setup page, and its textures show up here." />
+      </StackPanel>
+
+      <TextBlock IsVisible="{Binding IsLoading}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Reading the texture table..." />
+      <TextBlock IsVisible="{Binding LoadError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                 Classes="error" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="520"
+                 Text="{Binding LoadError}" />
+
+      <Grid IsVisible="{Binding IsReady}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="5*" MinWidth="400" />
+          <ColumnDefinition Width="8" />
+          <ColumnDefinition Width="4*" MinWidth="380" />
+        </Grid.ColumnDefinitions>
+
+        <!-- The list -->
+        <Border Classes="pane">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Classes="muted small" Margin="12,10" TextWrapping="Wrap" Text="{Binding ListCaption}" />
+            <DataGrid ItemsSource="{Binding VisibleRows}" SelectedItem="{Binding SelectedRow}" RowHeight="48" IsReadOnly="True">
+              <DataGrid.Columns>
+                <DataGridTemplateColumn Header="" Width="56" CanUserSort="False">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate x:DataType="vm:ArtRowViewModel">
+                      <gviews:ArtThumbnail Row="{Binding}"
+                                           Source="{Binding $parent[gviews:GameArtView].((vm:GameArtViewModel)DataContext).Thumbnails, FallbackValue={x:Null}}"
+                                           HorizontalAlignment="Center" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn x:DataType="vm:ArtRowViewModel" Header="Id" Width="80" Binding="{Binding Id}" />
+                <DataGridTextColumn x:DataType="vm:ArtRowViewModel" Header="Enum name" Width="*" MinWidth="160" Binding="{Binding Name}" />
+                <DataGridTextColumn x:DataType="vm:ArtRowViewModel" Header="Size" Width="96" Binding="{Binding SizeText}" CanUserSort="False" />
+                <DataGridTemplateColumn Header="File" Width="*" SortMemberPath="File">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate x:DataType="vm:ArtRowViewModel">
+                      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="8,0">
+                        <Border Classes="badge" IsVisible="{Binding IsReplaced}">
+                          <TextBlock Classes="small" Foreground="{DynamicResource StudioAccentBrush}" Text="Replaced" />
+                        </Border>
+                        <TextBlock Classes="mono small" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding File}" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+          </DockPanel>
+        </Border>
+        <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+        <!-- The viewer -->
+        <Border Grid.Column="2" Classes="pane">
+          <Panel>
+            <TextBlock IsVisible="{Binding NoSelection}" Classes="muted" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" TextWrapping="Wrap" Text="Pick a texture to see it at full size." />
+            <DockPanel IsVisible="{Binding HasSelection}" Margin="18,16">
+              <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,12">
+                <StackPanel Spacing="2">
+                  <SelectableTextBlock Classes="h3" TextWrapping="Wrap" Text="{Binding SelectedRow.Title, FallbackValue=''}" />
+                  <TextBlock Classes="faint small" Text="{Binding SelectedSubtitle}" />
+                  <SelectableTextBlock Classes="mono muted small" TextWrapping="Wrap" Text="{Binding ShownFile}" />
+                </StackPanel>
+
+                <WrapPanel Orientation="Horizontal">
+                  <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,16,8" IsVisible="{Binding HasOtherLanguages}">
+                    <TextBlock Classes="label" VerticalAlignment="Center" Text="FILE" />
+                    <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding ShownLanguage}" MinWidth="170">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ArtLanguage">
+                          <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,16,8">
+                    <TextBlock Classes="label" VerticalAlignment="Center" Text="ZOOM" />
+                    <ComboBox ItemsSource="{Binding Zooms}" SelectedItem="{Binding Zoom}" MinWidth="80">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ArtZoom">
+                          <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+                    <Button Content="Export PNG" Command="{Binding ExportPngCommand}" IsEnabled="{Binding HasVanillaImage}" />
+                    <Button Classes="accent" Content="Replace..." Command="{Binding ReplaceCommand}" IsEnabled="{Binding !HasReplaceNote}" />
+                    <Button Content="Revert" Command="{Binding RevertCommand}" IsVisible="{Binding HasReplacement}" />
+                  </StackPanel>
+                </WrapPanel>
+
+                <TextBlock Classes="muted small" TextWrapping="Wrap" IsVisible="{Binding HasReplaceNote}" Text="{Binding ReplaceNote}" />
+                <TextBlock Classes="muted small" TextWrapping="Wrap" IsVisible="{Binding HasReplacement}" Text="{Binding ReplacementWhere}" />
+              </StackPanel>
+
+              <!-- Vanilla, and the replacement beside it -->
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="{Binding ReplacementWidth}" />
+                </Grid.ColumnDefinitions>
+                <DockPanel>
+                  <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,6">
+                    <TextBlock Classes="label" IsVisible="{Binding HasReplacement}" Text="VANILLA" />
+                    <TextBlock Classes="faint small" Text="{Binding VanillaCaption}" />
+                  </StackPanel>
+                  <Panel>
+                    <TextBlock Classes="muted" IsVisible="{Binding IsDecoding}" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Decoding the texture..." />
+                    <SelectableTextBlock Classes="error" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                         IsVisible="{Binding VanillaError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                         Text="{Binding VanillaError}" />
+                    <gviews:ArtCanvas Source="{Binding VanillaImage}" Zoom="{Binding Zoom.Factor}" />
+                  </Panel>
+                </DockPanel>
+                <Border Grid.Column="1" Width="1" Margin="12,0" Background="{DynamicResource StudioBorderBrush}" IsVisible="{Binding HasReplacement}" />
+                <DockPanel Grid.Column="2" IsVisible="{Binding HasReplacement}">
+                  <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="0,0,0,6">
+                    <TextBlock Classes="label" Text="REPLACEMENT" />
+                    <TextBlock Classes="faint small" Text="{Binding ReplacementCaption}" />
+                  </StackPanel>
+                  <gviews:ArtCanvas Source="{Binding ReplacementImage}" Zoom="{Binding Zoom.Factor}" />
+                </DockPanel>
+              </Grid>
+            </DockPanel>
+          </Panel>
+        </Border>
+      </Grid>
+    </Panel>
+  </Grid>
+</UserControl>

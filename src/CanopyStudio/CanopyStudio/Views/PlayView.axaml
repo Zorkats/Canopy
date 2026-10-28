@@ -1,0 +1,330 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels"
+             xmlns:play="using:CanopyStudio.Core.Play"
+             x:Class="CanopyStudio.Views.PlayView"
+             x:DataType="vm:PlayViewModel"
+             DragDrop.AllowDrop="True">
+  <Panel>
+    <!-- No game: this sentence and nothing else. -->
+    <StackPanel IsVisible="{Binding NeedsGame}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="420">
+      <TextBlock Classes="h3" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                 Text="Open the game folder in Setup to see its mods." />
+      <Button Classes="accent" HorizontalAlignment="Center" Content="Open Setup" Command="{Binding OpenSetupCommand}" />
+    </StackPanel>
+
+    <Grid IsVisible="{Binding HasGame}" RowDefinitions="Auto,Auto,Auto,*" Margin="24,20,24,16">
+      <DockPanel Margin="0,0,0,12">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button Content="Refresh" Command="{Binding RefreshCommand}" />
+          <Button Content="Undo last change"
+                  Command="{Binding UndoCommand}"
+                  ToolTip.Tip="{Binding UndoText}"
+                  AutomationProperties.HelpText="{Binding UndoText}" />
+          <Button Classes="accent" Content="Install a mod..." Command="{Binding InstallCommand}" />
+        </StackPanel>
+        <StackPanel Spacing="2">
+          <TextBlock Classes="h2" Text="Play" />
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="The mods in your game folder, in the order Canopy loads them. Drop a mod's .zip or .dll here to install it." />
+          <TextBlock Classes="faint small" TextWrapping="Wrap" Text="{Binding UndoText}" />
+        </StackPanel>
+      </DockPanel>
+
+      <!-- The outcome of the last action -->
+      <StackPanel Grid.Row="1" Spacing="2" Margin="0,0,0,10" IsVisible="{Binding HasStatus}">
+        <SelectableTextBlock TextWrapping="Wrap" Classes.error="{Binding StatusFailed}" Text="{Binding Status}" />
+        <TextBlock Classes="faint small" IsVisible="{Binding ShowNextStart}" TextWrapping="Wrap"
+                   Text="Changes apply the next time the game starts." />
+      </StackPanel>
+
+      <!-- Installs planned and waiting for a yes -->
+      <ItemsControl Grid.Row="2" Margin="0,0,0,12" IsVisible="{Binding HasPlans}" ItemsSource="{Binding Plans}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="8" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:PlanItem">
+            <Border Classes="card" Padding="14,10">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="4">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Classes="h3" VerticalAlignment="Center" Text="{Binding FileName}" />
+                    <Border Classes="badge">
+                      <TextBlock Classes="small" Classes.warn="{Binding HasProblems}" Text="{Binding Target}" />
+                    </Border>
+                  </StackPanel>
+                  <TextBlock Classes="muted small" IsVisible="{Binding CanInstall}" TextWrapping="Wrap" Text="{Binding Summary}" />
+                  <ItemsControl IsVisible="{Binding HasProblems}" ItemsSource="{Binding Problems}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <SelectableTextBlock Classes="error small" TextWrapping="Wrap" Text="{Binding}" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Expander IsVisible="{Binding CanInstall}" Header="Files it writes" Padding="8">
+                    <ScrollViewer MaxHeight="160">
+                      <SelectableTextBlock Classes="mono muted" Text="{Binding WritesText}" />
+                    </ScrollViewer>
+                  </Expander>
+                  <Expander IsVisible="{Binding HasReplaces}" Header="Files it replaces" Padding="8">
+                    <ScrollViewer MaxHeight="160">
+                      <SelectableTextBlock Classes="mono muted" Text="{Binding ReplacesText}" />
+                    </ScrollViewer>
+                  </Expander>
+                  <Expander IsVisible="{Binding HasRemoves}" Header="Files it removes" Padding="8">
+                    <ScrollViewer MaxHeight="160">
+                      <SelectableTextBlock Classes="mono muted" Text="{Binding RemovesText}" />
+                    </ScrollViewer>
+                  </Expander>
+                  <Expander IsVisible="{Binding HasSkipped}" Header="Left out of the zip" Padding="8">
+                    <ScrollViewer MaxHeight="160">
+                      <SelectableTextBlock Classes="mono muted" Text="{Binding SkippedText}" />
+                    </ScrollViewer>
+                  </Expander>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0" VerticalAlignment="Top">
+                  <Button Content="Dismiss" Command="{Binding Dismiss}" />
+                  <Button Classes="accent" Content="Install" IsEnabled="{Binding CanInstall}" Command="{Binding Install}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <Grid Grid.Row="3">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="3*" MinWidth="340" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="2*" MinWidth="320" />
+        </Grid.ColumnDefinitions>
+
+        <!-- The mods, in load order -->
+        <Border Classes="pane">
+          <Panel>
+            <TextBlock IsVisible="{Binding IsLoading}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Text="Reading the mods folder..." />
+            <TextBlock IsVisible="{Binding NoMods}" Classes="muted" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" TextWrapping="Wrap"
+                       Text="There are no mods in this game folder yet. Install one with Install a mod, or drop its .zip here." />
+            <ListBox ItemsSource="{Binding Mods}" SelectedItem="{Binding SelectedMod}" Background="Transparent"
+                     AutomationProperties.Name="Mods">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:PlayModItem">
+                  <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2">
+                    <ToggleSwitch VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0"
+                                  IsChecked="{Binding IsOn}"
+                                  AutomationProperties.Name="{Binding SwitchName}" />
+                    <StackPanel Grid.Column="1" Spacing="4" Margin="8,0,0,0" VerticalAlignment="Center">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock FontWeight="SemiBold" Classes.muted="{Binding !IsOn}" Text="{Binding Title}" />
+                        <TextBlock Classes="faint small" VerticalAlignment="Center" IsVisible="{Binding HasVersion}" Text="{Binding VersionText}" />
+                      </StackPanel>
+                      <TextBlock Classes="mono faint" IsVisible="{Binding HasSubtitle}" Text="{Binding Subtitle}" />
+                      <ItemsControl ItemsSource="{Binding Badges}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <WrapPanel />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="play:ModBadge">
+                            <Border Classes="badge" Margin="0,0,6,2" ToolTip.Tip="{Binding Help}">
+                              <TextBlock Classes="caption" Classes.warn="{Binding Warning}" Text="{Binding Text}" />
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                    <Border Grid.Column="2" Classes="badge" Margin="8,0,0,0" VerticalAlignment="Center" IsVisible="{Binding HasProblems}">
+                      <TextBlock Classes="small" Classes.warn="{Binding !HasErrors}" Classes.error="{Binding HasErrors}"
+                                 Text="{Binding ProblemText}" />
+                    </Border>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Panel>
+        </Border>
+
+        <!-- Details: the selected mod, every problem, conflicts and the last run -->
+        <Border Grid.Column="2" Classes="pane">
+          <DockPanel>
+            <ListBox DockPanel.Dock="Top" Classes="tabs" Margin="8,6,8,0" SelectedIndex="{Binding SelectedTab}"
+                     AutomationProperties.Name="Details">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBoxItem>
+                <Grid RowDefinitions="*,Auto">
+                  <TextBlock Margin="12,6,12,8" Text="Mod" />
+                  <Border Grid.Row="1" Height="2" Background="{DynamicResource StudioAccentBrush}"
+                          IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+                </Grid>
+              </ListBoxItem>
+              <ListBoxItem>
+                <Grid RowDefinitions="*,Auto">
+                  <TextBlock Margin="12,6,12,8" Text="All problems" />
+                  <Border Grid.Row="1" Height="2" Background="{DynamicResource StudioAccentBrush}"
+                          IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+                </Grid>
+              </ListBoxItem>
+              <ListBoxItem IsVisible="{Binding HasConflicts}">
+                <Grid RowDefinitions="*,Auto">
+                  <TextBlock Margin="12,6,12,8" Text="{Binding ConflictsTitle}" />
+                  <Border Grid.Row="1" Height="2" Background="{DynamicResource StudioAccentBrush}"
+                          IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+                </Grid>
+              </ListBoxItem>
+              <ListBoxItem>
+                <Grid RowDefinitions="*,Auto">
+                  <TextBlock Margin="12,6,12,8" Text="Last run" />
+                  <Border Grid.Row="1" Height="2" Background="{DynamicResource StudioAccentBrush}"
+                          IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+                </Grid>
+              </ListBoxItem>
+            </ListBox>
+            <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource StudioBorderBrush}" />
+
+            <Panel>
+              <!-- The selected mod -->
+              <Panel IsVisible="{Binding IsModTab}">
+                <TextBlock IsVisible="{Binding NoSelection}" Classes="muted" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           TextAlignment="Center" TextWrapping="Wrap" Text="Pick a mod on the left to see what it is and what Canopy says about it." />
+                <ScrollViewer IsVisible="{Binding HasSelection}" HorizontalScrollBarVisibility="Disabled">
+                  <StackPanel Margin="16,14" Spacing="14">
+                    <DockPanel>
+                      <Button DockPanel.Dock="Right" VerticalAlignment="Top" Content="Remove..." Command="{Binding SelectedMod.Remove}" />
+                      <StackPanel Spacing="2">
+                        <TextBlock Classes="h3" TextWrapping="Wrap" Text="{Binding SelectedMod.Title}" />
+                        <SelectableTextBlock Classes="mono muted" TextWrapping="Wrap" Text="{Binding SelectedMod.Place}" />
+                        <TextBlock Classes="faint small" IsVisible="{Binding SelectedMod.HasVersion}" Text="{Binding SelectedMod.VersionText}" />
+                      </StackPanel>
+                    </DockPanel>
+
+                    <StackPanel Spacing="6">
+                      <TextBlock Classes="label" Text="WHAT IT IS" />
+                      <ItemsControl ItemsSource="{Binding SelectedMod.Badges}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="play:ModBadge">
+                            <Grid ColumnDefinitions="Auto,*" Margin="0,2">
+                              <Border Classes="badge" VerticalAlignment="Top">
+                                <TextBlock Classes="caption" Classes.warn="{Binding Warning}" Text="{Binding Text}" />
+                              </Border>
+                              <TextBlock Grid.Column="1" Classes="muted small" Margin="10,1,0,0" TextWrapping="Wrap" Text="{Binding Help}" />
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                      <TextBlock Classes="label" Text="PROBLEMS" />
+                      <TextBlock Classes="muted small" IsVisible="{Binding HasCheckState}" TextWrapping="Wrap" Text="{Binding CheckState}" />
+                      <TextBlock Classes="muted small" TextWrapping="Wrap"
+                                 IsVisible="{Binding SelectedMod.NoProblems, FallbackValue=False}"
+                                 Text="Canopy's check found nothing to report about this mod. A mod that is off is not checked." />
+                      <ItemsControl ItemsSource="{Binding SelectedMod.Problems}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:ProblemItem">
+                            <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="0,6">
+                              <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Spacing="2">
+                                  <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Classes="small" FontWeight="SemiBold" Classes.error="{Binding IsError}" Classes.warn="{Binding !IsError}"
+                                               Text="{Binding SeverityText}" />
+                                    <TextBlock Classes="mono faint" IsVisible="{Binding HasWhere}" Text="{Binding Where}" />
+                                  </StackPanel>
+                                  <SelectableTextBlock TextWrapping="Wrap" Text="{Binding Message}" />
+                                </StackPanel>
+                                <Button Grid.Column="1" Classes="small" Margin="10,0,0,0" VerticalAlignment="Top" Padding="10,4"
+                                        IsVisible="{Binding CanShow}" Content="Show me" Command="{Binding ShowMe}" />
+                              </Grid>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </StackPanel>
+                </ScrollViewer>
+              </Panel>
+
+              <!-- Every problem not about one mod -->
+              <ScrollViewer IsVisible="{Binding IsProblemsTab}" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="16,14" Spacing="10">
+                  <TextBlock Classes="muted" IsVisible="{Binding HasCheckState}" TextWrapping="Wrap" Text="{Binding CheckState}" />
+                  <TextBlock TextWrapping="Wrap" Text="{Binding CheckSummary}" />
+                  <TextBlock Classes="faint small" TextWrapping="Wrap"
+                             Text="Each mod's own problems are on its row and in Mod. Below are the ones about no one mod." />
+                  <TextBlock Classes="label" IsVisible="{Binding HasGeneralProblems}" Text="GENERAL" />
+                  <ItemsControl ItemsSource="{Binding GeneralProblems}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ProblemItem">
+                        <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="0,6">
+                          <StackPanel Spacing="2">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                              <TextBlock Classes="small" FontWeight="SemiBold" Classes.error="{Binding IsError}" Classes.warn="{Binding !IsError}"
+                                         Text="{Binding SeverityText}" />
+                              <TextBlock Classes="mono faint" IsVisible="{Binding HasWhere}" Text="{Binding Where}" />
+                            </StackPanel>
+                            <SelectableTextBlock TextWrapping="Wrap" Text="{Binding Message}" />
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </ScrollViewer>
+
+              <!-- Game files more than one mod ships -->
+              <ScrollViewer IsVisible="{Binding IsConflictsTab}" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="16,14" Spacing="10">
+                  <TextBlock Classes="muted small" TextWrapping="Wrap"
+                             Text="These game files come from more than one turned-on mod. Canopy uses the one from the mod that loads last; turn the others off to keep it that way, or turn the winner off to change it." />
+                  <ItemsControl ItemsSource="{Binding Conflicts}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ConflictItem">
+                        <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="0,6">
+                          <StackPanel Spacing="2">
+                            <SelectableTextBlock Classes="mono" TextWrapping="Wrap" Text="{Binding Key}" />
+                            <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{Binding ModsText}" />
+                            <TextBlock Classes="small" TextWrapping="Wrap" Text="{Binding WinnerText}" />
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </ScrollViewer>
+
+              <!-- Canopy.log, the last run only -->
+              <DockPanel IsVisible="{Binding IsLogTab}" Margin="12,10,12,12">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                  <CheckBox DockPanel.Dock="Right" Content="Only problems" IsChecked="{Binding OnlyProblems}" />
+                  <TextBlock Classes="faint small" VerticalAlignment="Center" TextWrapping="Wrap"
+                             Text="Canopy.log from the last time the game started." />
+                </DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8" IsVisible="{Binding HasLogState}" TextWrapping="Wrap"
+                           Text="{Binding LogState}" />
+                <TextBox IsReadOnly="True"
+                         AcceptsReturn="True"
+                         TextWrapping="NoWrap"
+                         FontFamily="{DynamicResource StudioMono}"
+                         FontSize="{DynamicResource StudioSmallSize}"
+                         AutomationProperties.Name="Last run log"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         Text="{Binding LogText}" />
+              </DockPanel>
+            </Panel>
+          </DockPanel>
+        </Border>
+      </Grid>
+    </Grid>
+  </Panel>
+</UserControl>

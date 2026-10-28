@@ -1,0 +1,101 @@
+name: Build (Windows)
+
+# Builds Canopy, VillageQoL, the SDK and Canopy Studio for Windows, runs the tests, and packages
+# them with .github/scripts/package_windows.ps1, which refuses a binary that needs the Visual
+# C++ redistributable. The zips are a workflow artifact; build.yml, release.yml and nightly.yml
+# call this same workflow, so a pull request, a tagged release and a nightly pass the same
+# checks and cannot drift apart. Adapted from G-Diffuser's release-windows.yml.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version for the package names, without the leading v; empty for the tag or dev-<commit>'
+        required: false
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for the package names, without the leading v'
+        required: true
+        default: '0.0.0-test'
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    # Pinned rather than windows-latest, which moves between images: the toolchain that builds a
+    # release should change when we decide it does, not when the runner pool rolls over.
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        # Through the environment rather than inline, so the input cannot be read as shell syntax.
+        shell: pwsh
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          $value = $env:REQUESTED_VERSION
+          if (-not $value -and $env:GITHUB_REF_TYPE -eq 'tag') { $value = $env:GITHUB_REF_NAME -replace '^v', '' }
+          if (-not $value) { $value = "dev-$($env:GITHUB_SHA.Substring(0, 7))" }
+          # .NET wants three numbers for the assembly version; dev builds read as 0.0.0.
+          $numbers = if ($value -match '^(\d+\.\d+\.\d+)') { $Matches[1] } else { '0.0.0' }
+          "value=$value" >> $env:GITHUB_OUTPUT
+          "numbers=$numbers" >> $env:GITHUB_OUTPUT
+
+      - name: Set up the MSVC x64 environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # The title screen and the DLLs' version resources carry the version.
+      - name: Configure
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          $env:VCPKG_ROOT = $env:VCPKG_INSTALLATION_ROOT
+          cmake --preset release "-DCANOPY_RELEASE=$env:VERSION"
+
+      - name: Build
+        run: cmake --build --preset release
+
+      - name: Test CanopyCore
+        # The checks that read the game or the private test mods skip themselves here.
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Test Canopy Studio
+        run: dotnet test tests/studio/CanopyStudio.Tests -c Release
+
+      - name: Publish Canopy Studio
+        # Self-contained, so a player needs no .NET install. canopy_core.dll comes from the build
+        # above, which CanopyStudio.Core.csproj copies in.
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          NUMBERS: ${{ steps.version.outputs.numbers }}
+        shell: pwsh
+        run: >
+          dotnet publish src/CanopyStudio/CanopyStudio/CanopyStudio.csproj -c Release -r win-x64
+          --self-contained -o build/studio-win
+          "-p:Version=$env:NUMBERS" "-p:InformationalVersion=$env:VERSION"
+
+      - name: Package and verify dependencies
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: pwsh .github/scripts/package_windows.ps1 -BuildDir build -StudioDir build/studio-win -Version $env:VERSION -OutDir dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-windows-${{ steps.version.outputs.value }}
+          path: dist/*.zip
+          if-no-files-found: error

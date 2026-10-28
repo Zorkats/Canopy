@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:refs="using:CanopyStudio.ViewModels.Create.Refs"
+             xmlns:pick="using:CanopyStudio.Controls.Pickers"
+             x:Class="CanopyStudio.Views.Create.Refs.VanillaIdFieldView"
+             x:DataType="refs:VanillaIdFieldViewModel">
+  <!-- A vanilla row id: the game's list where it covers the table, a number
+       box elsewhere, and a way to open the row in Tables. -->
+  <StackPanel Spacing="4">
+    <Grid ColumnDefinitions="*,Auto">
+      <pick:VanillaPickerButton IsVisible="{Binding HasPicker}"
+                                AutomationProperties.Name="{Binding Key}"
+                                Kind="{Binding PickerKindOrItem}"
+                                Assets="{Binding Assets}"
+                                SelectedId="{Binding SelectedId}" />
+      <TextBox IsVisible="{Binding HasNumberBox}"
+               AutomationProperties.Name="{Binding Key}"
+               Classes="mono"
+               Watermark="{Binding Watermark}"
+               Text="{Binding Text}" />
+      <Button x:Name="OpenButton"
+              Grid.Column="1"
+              Classes="small"
+              Margin="6,0,0,0"
+              VerticalAlignment="Center"
+              Content="Open in Tables"
+              ToolTip.Tip="Show this row in the Game area's Tables"
+              IsEnabled="{Binding CanOpenInTables}"
+              Click="OnOpenInTables" />
+    </Grid>
+    <TextBlock Classes="mono muted small"
+               IsVisible="{Binding ShowsRawValue}"
+               Text="{Binding Value}" />
+    <TextBlock Classes="warn small"
+               TextWrapping="Wrap"
+               IsVisible="{Binding HasWarning}"
+               Text="{Binding Warning}" />
+  </StackPanel>
+</UserControl>

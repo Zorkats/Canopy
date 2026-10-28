@@ -1,0 +1,116 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels"
+             x:Class="CanopyStudio.Views.HomeView"
+             x:DataType="vm:HomeViewModel">
+  <ScrollViewer>
+    <StackPanel Margin="40,36" MaxWidth="980" HorizontalAlignment="Left" Spacing="28">
+      <StackPanel Spacing="6">
+        <TextBlock Classes="h1" Text="Canopy Studio" />
+        <TextBlock Classes="muted"
+                   MaxWidth="620"
+                   HorizontalAlignment="Left"
+                   TextWrapping="Wrap"
+                   Text="Look through everything in Village in the Shade's archives: its files, its textures and its database tables. Nothing here changes the game." />
+      </StackPanel>
+
+      <!-- No game yet -->
+      <Border Classes="card" Padding="24" IsVisible="{Binding NeedsGame}">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="4" Margin="0,0,24,0">
+            <TextBlock Classes="h2" Text="Choose the game folder" />
+            <TextBlock Classes="muted"
+                       TextWrapping="Wrap"
+                       Text="Canopy Studio reads the game from where Village in the Shade is installed. It looks in your Steam libraries first." />
+          </StackPanel>
+          <Button Grid.Column="1"
+                  Classes="accent"
+                  VerticalAlignment="Center"
+                  Content="Set up"
+                  Command="{Binding OpenSetupCommand}" />
+        </Grid>
+      </Border>
+
+      <!-- Game open -->
+      <StackPanel Spacing="28" IsVisible="{Binding HasGame}">
+        <Border Classes="card" Padding="0">
+          <Grid ColumnDefinitions="*,*,*,*,*">
+            <StackPanel Grid.Column="0" Margin="20,16" Spacing="2">
+              <TextBlock Classes="label" Text="FILES" />
+              <TextBlock Classes="stat" Text="{Binding FilesText}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Margin="20,16" Spacing="2">
+              <TextBlock Classes="label" Text="TABLES" />
+              <TextBlock Classes="stat" Text="{Binding TablesText}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Margin="20,16" Spacing="2">
+              <TextBlock Classes="label" Text="ARCHIVES" />
+              <TextBlock Classes="stat" Text="{Binding ArchivesText}" />
+            </StackPanel>
+            <StackPanel Grid.Column="3" Margin="20,16" Spacing="2">
+              <TextBlock Classes="label" Text="GAME VERSION" />
+              <TextBlock Classes="stat" Classes.warn="{Binding IsUnsupported}" Text="{Binding VersionText}" />
+            </StackPanel>
+            <StackPanel Grid.Column="4" Margin="20,16" Spacing="2">
+              <TextBlock Classes="label" Text="CANOPY" />
+              <TextBlock Classes="stat" Text="{Binding CanopyText}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <!-- Canopy to install or update, and what the last try did -->
+        <Border Classes="card" Padding="20" IsVisible="{Binding Canopy.ShowHomeCard}">
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="*,Auto,Auto" IsVisible="{Binding Canopy.ShowHomePrompt}">
+              <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,16,0" Text="{Binding Canopy.HomePrompt}" />
+              <Button Grid.Column="1"
+                      Classes="accent"
+                      IsVisible="{Binding Canopy.ShowInstall}"
+                      Content="{Binding Canopy.InstallText}"
+                      Command="{Binding Canopy.InstallCommand}" />
+              <Button Grid.Column="1"
+                      Classes="accent"
+                      IsVisible="{Binding Canopy.ShowUpdate}"
+                      Content="{Binding Canopy.UpdateText}"
+                      Command="{Binding Canopy.UpdateCommand}" />
+              <Button Grid.Column="2" Margin="8,0,0,0" Content="Details" Command="{Binding OpenSetupCommand}" />
+            </Grid>
+            <SelectableTextBlock TextWrapping="Wrap"
+                                 IsVisible="{Binding Canopy.ShowOutcome}"
+                                 Classes.error="{Binding Canopy.OutcomeFailed}"
+                                 Text="{Binding Canopy.Outcome}" />
+          </StackPanel>
+        </Border>
+
+        <Grid ColumnDefinitions="*,*">
+          <Button Grid.Column="0" Classes="tile" Margin="0,0,8,0" Command="{Binding OpenFilesCommand}">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="h2" Text="Files" />
+              <TextBlock Classes="muted"
+                         TextWrapping="Wrap"
+                         Text="Every file in the archives as a folder tree. Search any path, and preview textures." />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="1" Classes="tile" Margin="8,0,0,0" Command="{Binding OpenTablesCommand}">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="h2" Text="Tables" />
+              <TextBlock Classes="muted"
+                         TextWrapping="Wrap"
+                         Text="The game's database, row by row: ids, names, fields and raw bytes." />
+            </StackPanel>
+          </Button>
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <TextBlock Classes="label" VerticalAlignment="Center" Margin="0,0,12,0" Text="GAME FOLDER" />
+          <TextBlock Grid.Column="1"
+                     Classes="mono muted"
+                     VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis"
+                     Text="{Binding GameFolder}" />
+          <Button Grid.Column="2" Margin="12,0,0,0" Content="Change" Command="{Binding OpenSetupCommand}" />
+        </Grid>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

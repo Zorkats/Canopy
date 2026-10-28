@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="CanopyStudio.Views.Create.ContentThumbnail"
+             Width="144"
+             Height="128">
+  <Panel>
+    <!-- The kind's name, shown until a picture is ready or when there is none -->
+    <Border x:Name="Placeholder"
+            Background="{DynamicResource StudioRaisedBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{DynamicResource StudioRadius}">
+      <TextBlock x:Name="GlyphText"
+                 Classes="faint"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center" />
+    </Border>
+
+    <!-- The picture on the checkerboard that shows transparency -->
+    <Border x:Name="Frame"
+            IsVisible="False"
+            Background="{DynamicResource StudioCheckerBrush}"
+            CornerRadius="{DynamicResource StudioRadius}"
+            ClipToBounds="True">
+      <Image x:Name="Picture"
+             Stretch="Uniform"
+             RenderOptions.BitmapInterpolationMode="None" />
+    </Border>
+  </Panel>
+</UserControl>

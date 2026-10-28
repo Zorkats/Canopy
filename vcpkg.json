@@ -3,6 +3,9 @@
   "version-string": "dev",
   "description": "Canopy mod loader and VillageQoL for Village in the Shade.",
   "dependencies": [
-    "minhook"
+    {
+      "name": "minhook",
+      "platform": "windows"
+    }
   ]
 }

@@ -58,6 +58,12 @@
 // few bytes of machine code that write only what the find itself writes. A
 // C++ detour may use any volatile register and crashes the game at startup.
 //
+// A slider with step 1 is the engine's own numeric selector: a record of
+// the slider type with no choices, which the menu fills with every number
+// from min to max, keyed by the number. A slider with a larger step is a
+// choice row with one generated number per step, keyed by index, in a
+// record allocated to fit them all.
+//
 // A hotkey binding is a selector row with a single choice: its label on the
 // left and, centered in the value column the way Key Config shows its keys,
 // the bound key's glyph, drawn by the engine's padIcon text tag in the style
@@ -243,7 +249,10 @@ enum class RowRole { Button, CollapsedHeader, ExpandedHeader, Setting, Binding, 
 // (the menu keeps a pointer to the node's value), and its list entry. Rows
 // live for the whole process, so every pointer the engine keeps stays valid.
 struct FakeRecord {
-    alignas(16) uint8_t record[kFakeRecordSize];
+    // The record the engine reads: inlineRecord, or a larger buffer for a
+    // slider with more choices than it holds.
+    uint8_t* record;
+    alignas(16) uint8_t inlineRecord[kFakeRecordSize];
     alignas(8) uint8_t node[retail::kMapNodeSize];
     alignas(8) uint8_t listRow[32];
     void* listSlot;
@@ -270,6 +279,10 @@ std::deque<std::string> g_HeaderTexts;
 // Binding row values per setting and language. Rewritten in place before each
 // page build, so the records' pointers stay valid.
 char g_BindingTexts[kMaxSettings][retail::kLanguageCount][kBindingTextSize] = {};
+// Records too large for a fake's inline storage, and the numbers their
+// choices show. Neither ever moves, so the engine may keep pointers.
+std::deque<std::vector<uint8_t>> g_LargeRecords;
+std::deque<std::string> g_NumberTexts;
 
 // The mod settings page while it lives, with our own reference to it, the
 // options menu it opened from, and the task both are attached to.
@@ -343,13 +356,16 @@ FakeRecord* FindFake(int64_t settingId) {
     return nullptr;
 }
 
+// storage, when given, holds the record instead of the fake's own.
 FakeRecord* AddFake(
-    int64_t id, const uint8_t* source, size_t copySize, const char* const* labels, RowRole role, int mod, int setting
+    int64_t id, const uint8_t* source, size_t copySize, const char* const* labels, RowRole role, int mod, int setting,
+    uint8_t* storage = nullptr
 ) {
     if (g_FakeCount == kMaxFakeRecords) {
         return nullptr;
     }
     FakeRecord& fake = g_Fakes[g_FakeCount++];
+    fake.record = storage ? storage : fake.inlineRecord;
     std::memcpy(fake.record, source, copySize);
     WriteAt<int64_t>(fake.record, retail::kSettingRecordId, id);
     WriteAt<int32_t>(fake.record, retail::kSettingRecordStorage, retail::kSettingStorageNone);
@@ -430,6 +446,89 @@ void AddChoiceRow(int64_t id, const uint8_t* toggleTemplate, size_t setting) {
         std::memcpy(
             entry + retail::kSettingChoiceNames, config.choices[choice], sizeof(const char*) * retail::kLanguageCount
         );
+        std::memcpy(
+            entry + retail::kSettingChoiceDescriptions, config.help, sizeof(const char*) * retail::kLanguageCount
+        );
+        WriteAt<int32_t>(entry, retail::kSettingChoiceValue, choice);
+    }
+}
+
+// A slider with a larger step shows its numbers as choices, keyed by index.
+bool SliderByIndex(const mod_config::Setting& config) {
+    return config.kind == mod_config::Kind::Slider && config.step > 1;
+}
+
+int32_t SliderCount(const mod_config::Setting& config) {
+    return static_cast<int32_t>((static_cast<int64_t>(config.max) - config.min) / config.step + 1);
+}
+
+// The value the engine keys a row's items by: the setting's value, or a
+// stepped slider's choice index.
+int32_t RowValue(const mod_config::Setting& config) {
+    if (!SliderByIndex(config)) {
+        return config.value;
+    }
+    return static_cast<int32_t>((static_cast<int64_t>(config.value) - config.min) / config.step);
+}
+
+// The setting value for an item key the engine sets a row to. A key off
+// the slider gives the current value, which changes nothing.
+int32_t SettingValue(const mod_config::Setting& config, int32_t rowValue) {
+    if (!SliderByIndex(config)) {
+        return rowValue;
+    }
+    if (rowValue < 0 || rowValue >= SliderCount(config)) {
+        return config.value;
+    }
+    return static_cast<int32_t>(config.min + static_cast<int64_t>(rowValue) * config.step);
+}
+
+// A slider row is the toggle's header. With step 1 it becomes the slider
+// type with no choices, and the menu lists min to max itself; its help is
+// written to the first choice's descriptions anyway, where a choice row's
+// help is read. With a larger step it is a choice row of generated
+// numbers, in a record sized for all of them.
+void AddSliderRow(int64_t id, const uint8_t* toggleTemplate, size_t setting) {
+    const mod_config::Setting& config = mod_config::At(setting);
+    const int32_t count = SliderCount(config);
+    uint8_t* storage = nullptr;
+    if (SliderByIndex(config)) {
+        g_LargeRecords.emplace_back(retail::kSettingRecordChoices + static_cast<size_t>(count) * retail::kSettingChoiceSize, 0);
+        storage = g_LargeRecords.back().data();
+    }
+    FakeRecord* fake = AddFake(
+        id, toggleTemplate, kButtonCopySize, config.label, RowRole::Setting, config.mod, static_cast<int>(setting),
+        storage
+    );
+    if (!fake) {
+        Log(std::string("No room for the ") + config.key + " row.");
+        return;
+    }
+    if (!SliderByIndex(config)) {
+        WriteAt<int32_t>(fake->record, retail::kSettingRecordType, retail::kSettingTypeSlider);
+        WriteAt<int32_t>(fake->record, retail::kSettingRecordDefault, config.min);
+        WriteAt<int32_t>(fake->record, retail::kSettingRecordMin, config.min);
+        WriteAt<int32_t>(fake->record, retail::kSettingRecordMax, config.max);
+        WriteAt<int32_t>(fake->record, retail::kSettingRecordChoiceCount, 0);
+        uint8_t* entry = fake->record + retail::kSettingRecordChoices;
+        std::memset(entry, 0, retail::kSettingChoiceSize);
+        std::memcpy(
+            entry + retail::kSettingChoiceDescriptions, config.help, sizeof(const char*) * retail::kLanguageCount
+        );
+        return;
+    }
+    WriteAt<int32_t>(fake->record, retail::kSettingRecordDefault, 0);
+    WriteAt<int32_t>(fake->record, retail::kSettingRecordMin, 0);
+    WriteAt<int32_t>(fake->record, retail::kSettingRecordMax, count - 1);
+    WriteAt<int32_t>(fake->record, retail::kSettingRecordChoiceCount, count);
+    for (int32_t choice = 0; choice < count; ++choice) {
+        g_NumberTexts.push_back(std::to_string(config.min + choice * config.step));
+        const char* names[retail::kLanguageCount];
+        for (const char*& name : names) {
+            name = g_NumberTexts.back().c_str();
+        }
+        uint8_t* entry = fake->record + retail::kSettingRecordChoices + choice * retail::kSettingChoiceSize;
+        std::memcpy(entry + retail::kSettingChoiceNames, names, sizeof(names));
         std::memcpy(
             entry + retail::kSettingChoiceDescriptions, config.help, sizeof(const char*) * retail::kLanguageCount
         );
@@ -547,6 +646,9 @@ bool BuildFakeRecords(const uint8_t* settingTable) {
                 break;
             case mod_config::Kind::Button:
                 AddModButtonRow(id, buttonTemplate, setting);
+                break;
+            case mod_config::Kind::Slider:
+                AddSliderRow(id, toggleTemplate, setting);
                 break;
             default:
                 AddToggle(id, toggleTemplate, setting);
@@ -975,7 +1077,7 @@ uint64_t __fastcall Detour_GetSettingValue(void* manager, int64_t settingId) {
     // A binding's row shows its only choice: its pad is not a choice index.
     if (const FakeRecord* fake = FindFake(settingId)) {
         return fake->setting >= 0 && fake->role != RowRole::Binding
-                   ? static_cast<uint32_t>(mod_config::At(fake->setting).value)
+                   ? static_cast<uint32_t>(RowValue(mod_config::At(fake->setting)))
                    : 0;
     }
     return g_OriginalGetSettingValue(manager, settingId);
@@ -984,7 +1086,8 @@ uint64_t __fastcall Detour_GetSettingValue(void* manager, int64_t settingId) {
 uint64_t __fastcall Detour_SetSettingValue(void* manager, int64_t settingId, int32_t value) {
     if (const FakeRecord* fake = FindFake(settingId)) {
         if (fake->setting >= 0 && fake->role != RowRole::Binding) {
-            mod_config::SetValue(static_cast<size_t>(fake->setting), value);
+            const size_t setting = static_cast<size_t>(fake->setting);
+            mod_config::SetValue(setting, SettingValue(mod_config::At(setting), value));
         }
         return 0;
     }
@@ -1111,7 +1214,7 @@ void TickPrompt() {
 }  // namespace
 
 bool Install() {
-    if (!MatchesSignatures(retail::kOptionsMenuSignatures)) {
+    if (!RequirementsMet(retail::kOptionsMenuRequirements)) {
         return false;
     }
     ResolveFunctions();

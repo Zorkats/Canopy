@@ -6,7 +6,9 @@
 //   - "Message Style" (choice): short or detailed lines.
 //   - "Ping Key" / "Ping Button" (bindings): log a line when pressed.
 //   - "Show a Toast" (button): asks with a Yes/No popup, then shows a toast.
-// It also toasts when a save finishes loading, logs reaching the title
+//   - "Ping Value" (slider): how much each ping adds to the save's total.
+// It keeps that ping total with the save being played, and logs it when a
+// save finishes loading. It also toasts then, logs reaching the title
 // screen, checks the game build, and finds a function by byte pattern.
 // For other mods it provides the ExampleMod.Greeter interface, declared in
 // example_mod_api.h, and it declares a manifest with no dependencies.
@@ -45,9 +47,25 @@ CanopySetting g_FieldMessages = CANOPY_NO_SETTING;
 CanopySetting g_MessageStyle = CANOPY_NO_SETTING;
 CanopySetting g_PingKey = CANOPY_NO_SETTING;
 CanopySetting g_PingButton = CANOPY_NO_SETTING;
+CanopySetting g_PingValue = CANOPY_NO_SETTING;
+
+// The per-save key of the ping total.
+constexpr const char* kPingTotal = "PingTotal";
 
 bool Detailed() {
     return g_Api->GetSetting(g_MessageStyle, 0) == 1;
+}
+
+// The loader reads a save's values before it reports the load, so the
+// total here is the one the save was written with.
+void LogPingTotal() {
+    char line[96];
+    if (g_Api->HasSaveValue(g_Mod, kPingTotal)) {
+        std::snprintf(line, sizeof(line), "This save has a ping total of %d.", g_Api->GetSaveInt(g_Mod, kPingTotal, 0));
+    } else {
+        std::snprintf(line, sizeof(line), "This save has no ping total yet.");
+    }
+    g_Api->Log(g_Mod, line);
 }
 
 // Runs on the game thread for each game event, before that frame's OnFrame.
@@ -69,6 +87,7 @@ void OnEvent(CanopyEvent event, void*) {
             break;
         case CANOPY_EVENT_SAVE_LOADED:
             g_Api->ShowToast(g_Mod, "Example Mod: save loaded.");
+            LogPingTotal();
             break;
         case CANOPY_EVENT_TITLE_SCREEN:
             g_Api->Log(g_Mod, "At the title screen.");
@@ -91,6 +110,13 @@ void OnFrame(void*) {
             line, sizeof(line), Detailed() ? "Ping from %s. Player in field: %s." : "Ping from %s.",
             g_Api->PadName(keyPressed ? key : button), g_Api->PlayerInField() ? "yes" : "no"
         );
+        g_Api->Log(g_Mod, line);
+
+        // The total belongs to the save being played: the game's next save
+        // writes it, and loading that save brings it back.
+        const int32_t total = g_Api->GetSaveInt(g_Mod, kPingTotal, 0) + g_Api->GetSetting(g_PingValue, 10);
+        g_Api->SetSaveInt(g_Mod, kPingTotal, total);
+        std::snprintf(line, sizeof(line), "This save's ping total is now %d.", total);
         g_Api->Log(g_Mod, line);
     }
 }
@@ -143,13 +169,13 @@ void CheckGame() {
 
 }  // namespace
 
-CANOPY_MOD_MANIFEST("ExampleMod", "Example Mod", "Zorkats", CANOPY_VERSION(1, 0, 0), 3, NULL, 0);
+CANOPY_MOD_MANIFEST("ExampleMod", "Example Mod", "Zorkats", CANOPY_VERSION(1, 0, 0), 4, NULL, 0);
 
 CANOPY_MOD_EXPORT bool CanopyModInit(const CanopyApi* api) {
     // Refuse a loader older than the API this mod was built for. Functions
     // are only ever appended, so having the last one this mod uses means the
     // loader has them all.
-    if (!api || api->version < CANOPY_API_VERSION || !CANOPY_HAS(api, ProvideInterface)) {
+    if (!api || api->version < CANOPY_API_VERSION || !CANOPY_HAS(api, HasSaveValue)) {
         return false;
     }
     g_Api = api;
@@ -178,6 +204,11 @@ CANOPY_MOD_EXPORT bool CanopyModInit(const CanopyApi* api) {
 
     const CanopyText toastLabel = {nullptr, "Show a Toast"};
     api->AddButton(g_Mod, "ShowToast", &toastLabel, &OnShowToastPressed, nullptr);
+
+    // 0, 5, 10 ... 100. A step of 1 would show the game's own number selector.
+    const CanopyText valueLabel = {nullptr, "Ping Value"};
+    const CanopyText valueHelp = {nullptr, "How much each ping adds to this save's ping total."};
+    g_PingValue = api->AddSlider(g_Mod, "PingValue", &valueLabel, &valueHelp, 0, 100, 5, 10);
 
     if (!api->OnFrame(g_Mod, &OnFrame, nullptr) || !api->OnEvent(g_Mod, &OnEvent, nullptr)) {
         return false;

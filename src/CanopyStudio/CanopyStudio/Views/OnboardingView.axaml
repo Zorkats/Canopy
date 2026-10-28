@@ -1,0 +1,419 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels"
+             xmlns:services="using:CanopyStudio.Services"
+             xmlns:views="using:CanopyStudio.Views"
+             xmlns:sys="using:System"
+             x:Class="CanopyStudio.Views.OnboardingView"
+             x:DataType="vm:OnboardingViewModel">
+  <UserControl.Styles>
+    <!-- Buttons speak in the display face; the sentences inside a tile stay
+         in the body face. -->
+    <Style Selector="Button">
+      <Setter Property="FontFamily" Value="{DynamicResource StudioDisplayFont}" />
+    </Style>
+    <Style Selector="Button.tile TextBlock.muted">
+      <Setter Property="FontFamily" Value="{DynamicResource StudioBodyFont}" />
+    </Style>
+
+    <!-- The step indicator: the current step filled with the accent, done
+         steps checked, skipped ones faint. -->
+    <Style Selector="Border.stepMark">
+      <Setter Property="Width" Value="22" />
+      <Setter Property="Height" Value="22" />
+      <Setter Property="CornerRadius" Value="11" />
+      <Setter Property="BorderThickness" Value="1.5" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    </Style>
+    <Style Selector="Border.stepMark.done">
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioPassBrush}" />
+    </Style>
+    <Style Selector="Border.stepMark.current">
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" />
+    </Style>
+    <Style Selector="TextBlock.stepNumber">
+      <Setter Property="FontSize" Value="{DynamicResource StudioCaptionSize}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource StudioMutedBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.stepMark.current TextBlock.stepNumber">
+      <Setter Property="Foreground" Value="{DynamicResource StudioOnAccentBrush}" />
+    </Style>
+    <Style Selector="Path.stepCheck">
+      <Setter Property="Stroke" Value="{DynamicResource StudioPassBrush}" />
+      <Setter Property="StrokeThickness" Value="2" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.stepMark.current Path.stepCheck">
+      <Setter Property="Stroke" Value="{DynamicResource StudioOnAccentBrush}" />
+    </Style>
+    <Style Selector="TextBlock.stepName">
+      <Setter Property="FontSize" Value="{DynamicResource StudioSmallSize}" />
+      <Setter Property="Foreground" Value="{DynamicResource StudioMutedBrush}" />
+    </Style>
+    <Style Selector="TextBlock.stepName.skipped">
+      <Setter Property="Foreground" Value="{DynamicResource StudioFaintBrush}" />
+    </Style>
+    <Style Selector="TextBlock.stepName.current">
+      <Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <!-- Folder and theme cards in a list: the list draws no background of its
+         own, and the selected card is marked by its accent edge. -->
+    <Style Selector="ListBox.cards">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.cards ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+      <Setter Property="CornerRadius" Value="{DynamicResource StudioRadius}" />
+    </Style>
+    <Style Selector="ListBox.cards ListBoxItem Border.card">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.cards ListBoxItem:selected Border.card">
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    </Style>
+    <Style Selector="ListBox.themes ListBoxItem">
+      <Setter Property="Margin" Value="0,0,10,10" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- A panel over the backdrop, centered across and held near the top so
+       the buttons stay put as steps change height: the steps, the step, the
+       buttons, in that order for the keyboard too. -->
+  <Border Classes="card"
+          Margin="32,56,32,32"
+          Padding="0"
+          Width="800"
+          MaxHeight="720"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Top">
+    <Grid RowDefinitions="Auto,*,Auto">
+      <!-- Step indicator -->
+      <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="28,18">
+        <ItemsControl ItemsSource="{Binding Steps}" AutomationProperties.Name="Setup steps">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Rows="1" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:OnboardingStepItem">
+              <StackPanel Orientation="Horizontal" Spacing="8" AutomationProperties.Name="{Binding AccessibleName}">
+                <Border Classes="stepMark" Classes.current="{Binding IsCurrent}" Classes.done="{Binding IsDone}">
+                  <Panel>
+                    <TextBlock Classes="stepNumber" IsVisible="{Binding ShowNumber}" Text="{Binding Number}" />
+                    <Path Classes="stepCheck" IsVisible="{Binding IsDone}" Data="M 0,4 L 3.5,7.5 L 10,0.5" />
+                  </Panel>
+                </Border>
+                <TextBlock Classes="stepName"
+                           Classes.current="{Binding IsCurrent}"
+                           Classes.skipped="{Binding IsSkipped}"
+                           VerticalAlignment="Center"
+                           Text="{Binding Name}" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
+
+      <!-- The step -->
+      <ScrollViewer Grid.Row="1">
+        <Panel Margin="36,28">
+          <!-- Welcome -->
+          <StackPanel Spacing="20" IsVisible="{Binding IsWelcome}">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="label" Text="{Binding StepCaption}" />
+              <TextBlock Classes="h1" Text="Welcome to Canopy Studio" />
+              <TextBlock Classes="muted"
+                         TextWrapping="Wrap"
+                         Text="Canopy Studio is where you play Village in the Shade with mods, make mods of your own, and look inside the game. It has three areas." />
+            </StackPanel>
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+              <TextBlock Classes="h3" Margin="0,0,20,12" Text="Play" />
+              <TextBlock Grid.Column="1" Margin="0,0,0,12" TextWrapping="Wrap" Text="Your mods: turn them off and on, install new ones, and keep Canopy up to date." />
+              <TextBlock Grid.Row="1" Classes="h3" Margin="0,0,20,12" Text="Create" />
+              <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,12" TextWrapping="Wrap" Text="Make a mod: new items, villagers, recipes, art and Lua, checked as you go." />
+              <TextBlock Grid.Row="2" Classes="h3" Margin="0,0,20,0" Text="Game" />
+              <TextBlock Grid.Row="2" Grid.Column="1" TextWrapping="Wrap" Text="Browse the game's files, tables and art, and change them as a mod." />
+            </Grid>
+            <Border Classes="pane" Padding="16,12">
+              <TextBlock TextWrapping="Wrap"
+                         Text="Nothing in the game folder changes unless you ask for it. Canopy Studio reads the game, and writes there only when you install Canopy or a mod." />
+            </Border>
+            <TextBlock Classes="muted"
+                       TextWrapping="Wrap"
+                       Text="The next steps take a few minutes. Skip any of them and finish it later: Setup can run them again." />
+          </StackPanel>
+
+          <!-- Game folder -->
+          <StackPanel Spacing="18" IsVisible="{Binding IsFolderStep}">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="label" Text="{Binding StepCaption}" />
+              <TextBlock Classes="h1" Text="Find the game" />
+              <TextBlock Classes="muted"
+                         TextWrapping="Wrap"
+                         Text="Canopy Studio needs the folder where Village in the Shade is installed: the one with village.exe in it. It looked in your Steam libraries." />
+            </StackPanel>
+            <TextBlock Classes="muted" IsVisible="{Binding IsSearching}" Text="Looking through your Steam libraries..." />
+            <TextBlock Classes="muted"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding NoFolders}"
+                       Text="Steam does not list the game on this PC. Type its folder below, or browse for it." />
+            <ListBox Classes="cards"
+                     AutomationProperties.Name="Game folders"
+                     ItemsSource="{Binding Folders}"
+                     SelectedItem="{Binding SelectedFolder}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:OnboardingFolder">
+                  <Border Classes="card" Padding="16,12">
+                    <StackPanel Spacing="10">
+                      <TextBlock Classes="mono" TextTrimming="CharacterEllipsis" Text="{Binding Folder}" />
+                      <TextBlock Classes="muted small" IsVisible="{Binding IsChecking}" Text="Checking the folder..." />
+                      <ItemsControl ItemsSource="{Binding Checks}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:CheckItem">
+                            <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,6">
+                              <Ellipse Classes="marker"
+                                       Classes.pass="{Binding IsPass}"
+                                       Classes.warn="{Binding IsWarn}"
+                                       Classes.fail="{Binding IsFail}"
+                                       Margin="0,4,12,0"
+                                       VerticalAlignment="Top" />
+                              <TextBlock Grid.Column="1" Classes="small" TextWrapping="Wrap">
+                                <Run FontWeight="SemiBold" Text="{Binding Title}" />
+                                <Run Text=": " />
+                                <Run Foreground="{DynamicResource StudioMutedBrush}" Text="{Binding Detail}" />
+                              </TextBlock>
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <Grid ColumnDefinitions="*,Auto,Auto">
+              <TextBox Classes="mono"
+                       AutomationProperties.Name="Game folder"
+                       Text="{Binding FolderText}"
+                       Watermark="{Binding FolderExample}">
+                <TextBox.KeyBindings>
+                  <KeyBinding Gesture="Enter" Command="{Binding AddFolderCommand}" />
+                </TextBox.KeyBindings>
+              </TextBox>
+              <Button Grid.Column="1" Margin="8,0,0,0" Content="Add" Command="{Binding AddFolderCommand}" />
+              <Button Grid.Column="2" Margin="8,0,0,0" Content="Browse..." Command="{Binding BrowseCommand}" />
+            </Grid>
+            <TextBlock TextWrapping="Wrap"
+                       Classes.error="{Binding FolderVerdictFailed}"
+                       Text="{Binding FolderVerdict}" />
+          </StackPanel>
+
+          <!-- Game assets -->
+          <StackPanel Spacing="18" IsVisible="{Binding IsAssetsStep}">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="label" Text="{Binding StepCaption}" />
+              <TextBlock Classes="h1" Text="Copy the game's assets" />
+              <TextBlock Classes="muted"
+                         TextWrapping="Wrap"
+                         Text="The seasonal themes use Village in the Shade's own fonts and art, and the pickers show its names and icons. Canopy Studio does not include them: it copies them from your copy of the game into a folder on this PC, reading the game folder only." />
+            </StackPanel>
+            <Border Classes="pane" Padding="16,12" IsVisible="{Binding NeedsFolder}">
+              <TextBlock TextWrapping="Wrap" Text="No game folder is chosen yet. Go back to the Game folder step, or skip this one and copy the assets later." />
+            </Border>
+            <Border Classes="card" Padding="20" IsVisible="{Binding HasChosenFolder}">
+              <StackPanel Spacing="14">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock VerticalAlignment="Center"
+                             TextWrapping="Wrap"
+                             Margin="0,0,16,0"
+                             IsVisible="{Binding ShowCopy}"
+                             Text="Copying reads the game folder and can take a minute or more. You can stop it at any time." />
+                  <TextBlock VerticalAlignment="Center"
+                             TextWrapping="Wrap"
+                             Margin="0,0,16,0"
+                             IsVisible="{Binding IsCopying}"
+                             Text="{Binding CopyText}" />
+                  <Button Grid.Column="1"
+                          Classes="accent"
+                          IsVisible="{Binding ShowCopy}"
+                          Content="{Binding CopyButtonText}"
+                          Command="{Binding CopyCommand}" />
+                  <Button Grid.Column="1"
+                          IsVisible="{Binding IsCopying}"
+                          Content="Cancel"
+                          Command="{Binding CancelCopyCommand}" />
+                </Grid>
+                <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsCopying}" />
+                <SelectableTextBlock TextWrapping="Wrap"
+                                     IsVisible="{Binding ShowCopyOutcome}"
+                                     Classes.error="{Binding CopyFailed}"
+                                     Text="{Binding CopyOutcome}" />
+                <ItemsControl ItemsSource="{Binding CopyProblems}" IsVisible="{Binding HasCopyProblems}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="sys:String">
+                      <SelectableTextBlock Classes="muted small" Margin="0,0,0,4" TextWrapping="Wrap" Text="{Binding}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- Canopy -->
+          <StackPanel Spacing="18" IsVisible="{Binding IsCanopyStep}">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="label" Text="{Binding StepCaption}" />
+              <TextBlock Classes="h1" Text="Install Canopy" />
+              <TextBlock Classes="muted"
+                         TextWrapping="Wrap"
+                         Text="Canopy is the mod loader: dinput8.dll next to village.exe. Mods need it to load in the game. Canopy Studio downloads it from the latest release on GitHub, checks it against the SHA-256 GitHub lists for it, and writes only that file." />
+            </StackPanel>
+            <Border Classes="pane" Padding="16,12" IsVisible="{Binding NeedsFolder}">
+              <TextBlock TextWrapping="Wrap" Text="No game folder is chosen yet. Go back to the Game folder step, or skip this one and install Canopy later from Setup." />
+            </Border>
+            <Border Classes="card" Padding="20" IsVisible="{Binding HasChosenFolder}">
+              <StackPanel Spacing="14">
+                <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
+                  <TextBlock Classes="label" VerticalAlignment="Center" Margin="0,0,16,10" Text="CANOPY" />
+                  <TextBlock Grid.Column="1" Grid.ColumnSpan="2" VerticalAlignment="Center" Margin="0,0,0,10" TextWrapping="Wrap" Text="{Binding Canopy.InstalledText}" />
+                  <TextBlock Grid.Row="1" Classes="label" VerticalAlignment="Center" Margin="0,0,16,10" Text="VILLAGEQOL" />
+                  <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" VerticalAlignment="Center" Margin="0,0,0,10" TextWrapping="Wrap" Text="{Binding Canopy.QoLText}" />
+                  <TextBlock Grid.Row="2" Classes="label" VerticalAlignment="Center" Margin="0,0,16,0" Text="LATEST RELEASE" />
+                  <SelectableTextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0" TextWrapping="Wrap" Text="{Binding Canopy.LatestText}" />
+                  <Button Grid.Row="2"
+                          Grid.Column="2"
+                          IsVisible="{Binding ShowCheckAgain}"
+                          Content="Check again"
+                          Command="{Binding Canopy.CheckAgainCommand}" />
+                </Grid>
+                <CheckBox IsVisible="{Binding ShowQoLChoice}" IsChecked="{Binding WantQoL}">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Install VillageQoL too" />
+                    <TextBlock Classes="muted small"
+                               TextWrapping="Wrap"
+                               Text="VillageQoL is an optional mod for Canopy that adds quality of life features such as quick save, faster walking and mouse wheel zoom." />
+                  </StackPanel>
+                </CheckBox>
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock VerticalAlignment="Center"
+                             TextWrapping="Wrap"
+                             Margin="0,0,16,0"
+                             IsVisible="{Binding CanopyReady}"
+                             Text="Canopy is installed in this game folder." />
+                  <Button Grid.Column="1"
+                          Classes.accent="{Binding !CanopyReady}"
+                          IsVisible="{Binding ShowCanopyAction}"
+                          Content="{Binding CanopyActionText}"
+                          Command="{Binding InstallCommand}" />
+                </Grid>
+                <TextBlock Classes="muted" IsVisible="{Binding Canopy.ShowWork}" Text="{Binding Canopy.WorkText}" />
+                <SelectableTextBlock TextWrapping="Wrap"
+                                     IsVisible="{Binding Canopy.ShowOutcome}"
+                                     Classes.error="{Binding Canopy.OutcomeFailed}"
+                                     Text="{Binding Canopy.Outcome}" />
+              </StackPanel>
+            </Border>
+            <views:ProtonLaunchView DataContext="{Binding Proton}" IsVisible="{Binding Needed}" />
+          </StackPanel>
+
+          <!-- Theme -->
+          <StackPanel Spacing="18" IsVisible="{Binding IsThemeStep}">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="label" Text="{Binding StepCaption}" />
+              <TextBlock Classes="h1" Text="Pick a theme" />
+              <TextBlock Classes="muted"
+                         TextWrapping="Wrap"
+                         Text="A theme sets the window's colours; the seasonal ones put the game's art behind it. Pick one to wear it now. You can change it at any time at the bottom of the rail." />
+            </StackPanel>
+            <ListBox Classes="cards themes"
+                     AutomationProperties.Name="Themes"
+                     ItemsSource="{Binding Appearance.Choices}"
+                     SelectedItem="{Binding Appearance.SelectedTheme}">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="services:ThemeChoice">
+                  <Border Classes="card" Width="160" Padding="16,14">
+                    <StackPanel Spacing="10">
+                      <Ellipse Width="20"
+                               Height="20"
+                               HorizontalAlignment="Left"
+                               Fill="{Binding Id, Converter={x:Static views:OnboardingView.ThemeAccent}}" />
+                      <TextBlock Classes="h3" Text="{Binding Name}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <TextBlock Classes="muted"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding OnlyForest}"
+                       Text="The seasonal themes appear once the game's art is copied in the Game assets step." />
+          </StackPanel>
+
+          <!-- Start -->
+          <StackPanel Spacing="18" IsVisible="{Binding IsStartStep}">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="label" Text="{Binding StepCaption}" />
+              <TextBlock Classes="h1" Text="Where to start" />
+              <TextBlock Classes="muted"
+                         TextWrapping="Wrap"
+                         Text="Pick an area to open. The others are always in the rail on the left." />
+            </StackPanel>
+            <Border Classes="pane" Padding="16,12" IsVisible="{Binding NeedsFolder}">
+              <TextBlock TextWrapping="Wrap" Text="No game folder is chosen yet, so Canopy Studio opens on Setup until one is." />
+            </Border>
+            <Grid ColumnDefinitions="*,*,*">
+              <Button Classes="tile" Margin="0,0,8,0" AutomationProperties.Name="Play" Command="{Binding OpenPlayCommand}">
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="h2" Text="Play" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap" Text="Turn your mods off and on, and install new ones." />
+                </StackPanel>
+              </Button>
+              <Button Grid.Column="1" Classes="tile" Margin="4,0" AutomationProperties.Name="Create" Command="{Binding OpenCreateCommand}">
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="h2" Text="Create" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap" Text="Make a mod of your own, checked as you go." />
+                </StackPanel>
+              </Button>
+              <Button Grid.Column="2" Classes="tile" Margin="8,0,0,0" AutomationProperties.Name="Game" Command="{Binding OpenGameCommand}">
+                <StackPanel Spacing="6">
+                  <TextBlock Classes="h2" Text="Game" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap" Text="Browse the game's files and tables, and change them as a mod." />
+                </StackPanel>
+              </Button>
+            </Grid>
+          </StackPanel>
+        </Panel>
+      </ScrollViewer>
+
+      <!-- Leave, Back, Skip, Next. Enter is Next; Escape is bound to nothing,
+           so it never throws away a step. -->
+      <Border Grid.Row="2" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="28,14">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+          <Button Content="Finish later" Command="{Binding LeaveCommand}" />
+          <Button Grid.Column="2" Margin="0,0,8,0" Content="Back" Command="{Binding BackCommand}" />
+          <Button Grid.Column="3" Margin="0,0,8,0" Content="Skip" Command="{Binding SkipCommand}" />
+          <Button Grid.Column="4"
+                  Classes.accent="{Binding NextIsMain}"
+                  IsDefault="True"
+                  IsVisible="{Binding ShowNext}"
+                  Content="Next"
+                  Command="{Binding NextCommand}" />
+        </Grid>
+      </Border>
+    </Grid>
+  </Border>
+</UserControl>

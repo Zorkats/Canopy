@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="CanopyStudio.Views.Game.ArtCanvas">
+  <!-- A checkerboard right behind the image shows where it is transparent. -->
+  <Panel>
+    <!-- Fit: shrunk to the space when larger, never enlarged. -->
+    <Border x:Name="FitFrame"
+            Background="{DynamicResource StudioCheckerBrush}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+      <Image x:Name="FitPicture"
+             Stretch="Uniform"
+             StretchDirection="DownOnly"
+             RenderOptions.BitmapInterpolationMode="HighQuality" />
+    </Border>
+    <!-- 1x and up: pixel for pixel, scrolled, never smoothed. -->
+    <ScrollViewer x:Name="Scroller"
+                  IsVisible="False"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+      <Border x:Name="ZoomFrame"
+              Background="{DynamicResource StudioCheckerBrush}"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <Image x:Name="ZoomPicture" Stretch="Fill" RenderOptions.BitmapInterpolationMode="None" />
+      </Border>
+    </ScrollViewer>
+  </Panel>
+</UserControl>

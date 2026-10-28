@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <deque>
 #include <memory>
 #include <mutex>
@@ -15,12 +16,26 @@
 #include <vector>
 
 #include "core.h"
+#include "disabled_mods.h"
 #include "game_events.h"
 #include "game_image.h"
 #include "game_ui.h"
 #include "hook_chain.h"
 #include "input.h"
+#include "lua_host.h"
+#include "mod_appends.h"
+#include "mod_art.h"
 #include "mod_config.h"
+#include "mod_items.h"
+#include "mod_objects.h"
+#include "mod_patches.h"
+#include "mod_recipes.h"
+#include "mod_crops.h"
+#include "mod_rows.h"
+#include "mod_villagers.h"
+#include "mod_whistles.h"
+#include "save_data.h"
+#include "save_overlay.h"
 #include "canopy_api.h"
 
 // =============================================================
@@ -53,6 +68,14 @@
 //
 // Hooks go through the loader's hook chains (hook_chain.cpp), so any number
 // of mods may detour the same function, each in creation order.
+//
+// Per-save values go to the store in save_data.cpp, one section per mod key.
+// The title event clears it before any mod hears of the title.
+//
+// A Lua mod (lua_host.cpp) gets a record of its own here, with no DLL, or
+// joins the DLL mod with its key. The Lua host hears every game event right
+// after the per-save values are cleared, and runs its players at the end of
+// the tick.
 //
 // Interfaces are written only during startup, so GetInterface reads them with
 // no lock. Only the log of failed lookups takes a lock, since it may be
@@ -329,6 +352,19 @@ CanopySetting Api_AddBinding(
     return mod_config::AddBinding(mod, storedKey, *storedLabel, *storedHelp, inputDevice, defaultPad);
 }
 
+CanopySetting Api_AddSlider(
+    CanopyMod mod, const char* key, const CanopyText* label, const CanopyText* help, int32_t min, int32_t max,
+    int32_t step, int32_t defaultValue
+) {
+    const char* storedKey = nullptr;
+    const mod_config::Text* storedLabel = nullptr;
+    const mod_config::Text* storedHelp = nullptr;
+    if (!InternSetting(mod, key, label, help, storedKey, storedLabel, storedHelp)) {
+        return CANOPY_NO_SETTING;
+    }
+    return mod_config::AddSlider(mod, storedKey, *storedLabel, *storedHelp, min, max, step, defaultValue);
+}
+
 int32_t Api_GetSetting(CanopySetting setting, int32_t fallback) {
     return mod_config::Value(setting, fallback);
 }
@@ -556,6 +592,57 @@ uint32_t Api_ModVersion(const char* id) {
     return 0;
 }
 
+// Logs once why a per-save value was refused, since a mod may retry every
+// frame. True when reason is null. Any thread.
+bool SaveValueAccepted(CanopyMod mod, const char* key, const char* reason) {
+    if (!reason) {
+        return true;
+    }
+    LogMissOnce(
+        "[" + ModName(mod) + "] Per-save value " + (key ? key : "(null)") + " rejected, " + reason + "."
+    );
+    return false;
+}
+
+constexpr const char* kNeedsMod = "it needs a registered mod";
+
+bool Api_SetSaveInt(CanopyMod mod, const char* key, int32_t value) {
+    return SaveValueAccepted(mod, key, ValidMod(mod) ? save_data::SetInt(ModName(mod), key, value) : kNeedsMod);
+}
+
+int32_t Api_GetSaveInt(CanopyMod mod, const char* key, int32_t fallback) {
+    int32_t value = fallback;
+    return ValidMod(mod) && save_data::GetInt(ModName(mod), key, value) ? value : fallback;
+}
+
+bool Api_SetSaveString(CanopyMod mod, const char* key, const char* value) {
+    return SaveValueAccepted(mod, key, ValidMod(mod) ? save_data::Set(ModName(mod), key, value) : kNeedsMod);
+}
+
+// Cut to fit on a UTF-8 character boundary, and always terminated: "" when
+// there is no value.
+bool Api_GetSaveString(CanopyMod mod, const char* key, char* buffer, uint32_t size) {
+    std::string value;
+    const bool found = ValidMod(mod) && save_data::Get(ModName(mod), key, value);
+    if (buffer && size > 0) {
+        size_t length = std::min<size_t>(value.size(), size - 1);
+        while (length > 0 && length < value.size() && (static_cast<uint8_t>(value[length]) & 0xC0) == 0x80) {
+            --length;
+        }
+        std::memcpy(buffer, value.data(), length);
+        buffer[length] = '\0';
+    }
+    return found;
+}
+
+bool Api_HasSaveValue(CanopyMod mod, const char* key) {
+    return ValidMod(mod) && save_data::Has(ModName(mod), key);
+}
+
+bool Api_DeleteSaveValue(CanopyMod mod, const char* key) {
+    return ValidMod(mod) && save_data::Remove(ModName(mod), key);
+}
+
 void BuildApi() {
     g_Api.size = sizeof(CanopyApi);
     g_Api.version = CANOPY_API_VERSION;
@@ -587,6 +674,13 @@ void BuildApi() {
     g_Api.ProvideInterface = &Api_ProvideInterface;
     g_Api.GetInterface = &Api_GetInterface;
     g_Api.ModVersion = &Api_ModVersion;
+    g_Api.AddSlider = &Api_AddSlider;
+    g_Api.SetSaveInt = &Api_SetSaveInt;
+    g_Api.GetSaveInt = &Api_GetSaveInt;
+    g_Api.SetSaveString = &Api_SetSaveString;
+    g_Api.GetSaveString = &Api_GetSaveString;
+    g_Api.HasSaveValue = &Api_HasSaveValue;
+    g_Api.DeleteSaveValue = &Api_DeleteSaveValue;
 }
 
 // ---- Loading -----------------------------------------------------------
@@ -1163,12 +1257,14 @@ void LoadAll(bool ticking, bool exitHooked) {
         Log("Created the mods folder.");
     }
 
+    const std::vector<std::string> turnedOff = disabled_mods::Cached(folder);
     std::vector<std::string> files;
     WIN32_FIND_DATAA found = {};
     HANDLE search = FindFirstFileA((folder + "\\*.dll").c_str(), &found);
     if (search != INVALID_HANDLE_VALUE) {
         do {
-            if (!(found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            if (!(found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
+                !disabled_mods::IsDisabled(turnedOff, found.cFileName)) {
                 files.emplace_back(found.cFileName);
             }
         } while (FindNextFileA(search, &found));
@@ -1177,6 +1273,12 @@ void LoadAll(bool ticking, bool exitHooked) {
     std::sort(files.begin(), files.end(), [](const std::string& left, const std::string& right) {
         return _stricmp(left.c_str(), right.c_str()) < 0;
     });
+
+    // The one place the list is reported: the content readers and the file
+    // overrides skip the same names without saying so again.
+    for (const std::string& name : disabled_mods::Existing(folder)) {
+        Log("Mod " + name + " is turned off in mods\\CanopyData\\disabled.txt, so it is not loaded.");
+    }
 
     Log("Loading " + std::to_string(files.size()) + (files.size() == 1 ? " mod." : " mods."));
 
@@ -1216,6 +1318,28 @@ size_t HookCount() {
     return g_Hooks.size();
 }
 
+std::vector<std::string> StartedModNames() {
+    static constexpr char kDll[] = ".dll";
+    static constexpr char kFolderPrefix[] = "mods\\";
+    std::vector<std::string> names;
+    for (const LoadedMod& mod : g_Loaded) {
+        if (!mod.started) {
+            continue;
+        }
+        std::string name = mod.file;
+        // A folder mod's source is mods\<Folder>, or mods\<Folder>\lua.
+        if (!mod.module && name.compare(0, sizeof(kFolderPrefix) - 1, kFolderPrefix) == 0) {
+            name = name.substr(sizeof(kFolderPrefix) - 1);
+            name = name.substr(0, name.find('\\'));
+        } else if (name.size() > sizeof(kDll) - 1 &&
+                   _stricmp(name.c_str() + name.size() - (sizeof(kDll) - 1), kDll) == 0) {
+            name.resize(name.size() - (sizeof(kDll) - 1));
+        }
+        names.push_back(name);
+    }
+    return names;
+}
+
 void Started() {
     g_Started = true;
     hook_chain::Started();
@@ -1238,9 +1362,30 @@ void ShutdownAll() {
 
 void Tick() {
     g_GameThread = GetCurrentThreadId();
+    // Restores mod state after a save and applies a load before anyone hears
+    // of the frame.
+    save_overlay::Tick();
+    mod_items::Tick();
     CanopyEvent events[game_events::kMaxPerFrame];
     const int eventCount = game_events::Poll(events);
     for (int event = 0; event < eventCount; ++event) {
+        // The game ended: its per-save values go before any mod hears of it.
+        if (events[event] == CANOPY_EVENT_TITLE_SCREEN) {
+            save_data::Reset();
+        }
+        save_overlay::OnEvent(events[event]);
+        mod_art::OnEvent(events[event]);
+        mod_patches::OnEvent(events[event]);
+        mod_rows::OnEvent(events[event]);
+        mod_appends::OnEvent(events[event]);
+        mod_items::OnEvent(events[event]);
+        mod_objects::OnEvent(events[event]);
+        // After items, whose title check its seeds wait on.
+        mod_crops::OnEvent(events[event]);
+        mod_villagers::OnEvent(events[event]);
+        mod_whistles::OnEvent(events[event]);
+        mod_recipes::OnEvent(events[event]);
+        lua_host::OnEvent(events[event]);
         // By index: a callback may register another.
         for (size_t index = 0; index < g_Events.size(); ++index) {
             const EventCallback entry = g_Events[index];
@@ -1260,6 +1405,7 @@ void Tick() {
         const Callback frame = g_Frames[index];
         RunGameCallback(frame.owner, &InvokeCallback, &frame, "a frame callback");
     }
+    lua_host::Tick();
 }
 
 void PressButton(int setting) {
@@ -1285,6 +1431,36 @@ void Exit() {
         const Callback exit = g_Exits[index];
         RunGuarded(exit.owner, &InvokeCallback, &exit, "an exit callback");
     }
+    lua_host::Exit();
+}
+
+CanopyMod AttachLuaMod(const char* key, const char* name, const char* source, bool& joined) {
+    joined = false;
+    for (size_t index = 0; index < mod_config::ModCount() && index < g_ModOwners.size(); ++index) {
+        if (_stricmp(mod_config::ModAt(index).key, key) == 0) {
+            joined = true;
+            g_Current = g_ModOwners[index];
+            return static_cast<CanopyMod>(index);
+        }
+    }
+    g_Current = g_Loaded.size();
+    g_Loaded.push_back({nullptr, source, nullptr, false, "", 0, true});
+    const CanopyText text = {name, name, name, name, name, name, name};
+    const CanopyMod mod = Api_RegisterMod(key, &text);
+    if (mod == CANOPY_NO_MOD) {
+        g_Loaded.pop_back();
+    }
+    return mod;
+}
+
+void AddNoticeRow(CanopyMod mod, const char* key, const char* text) {
+    if (ValidMod(mod)) {
+        mod_config::AddButton(mod, Intern(key), *InternPlain(text));
+    }
+}
+
+const CanopyApi* Api() {
+    return &g_Api;
 }
 
 }  // namespace mod_loader

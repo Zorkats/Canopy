@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:refs="using:CanopyStudio.ViewModels.Create.Refs"
+             x:Class="CanopyStudio.Views.Create.Refs.MelodyFieldView"
+             x:DataType="refs:MelodyFieldViewModel">
+  <!-- A whistle's notes as symbols, the buttons that build them, and the
+       value as the file holds it. -->
+  <StackPanel Spacing="6">
+    <Border Classes="card" Padding="10,6" MinHeight="44">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock FontSize="22"
+                   VerticalAlignment="Center"
+                   AutomationProperties.Name="Notes"
+                   Text="{Binding Symbols}" />
+        <TextBlock Grid.Column="1"
+                   Classes="muted small"
+                   VerticalAlignment="Center"
+                   Text="{Binding CountText}" />
+      </Grid>
+    </Border>
+    <StackPanel Orientation="Horizontal" Spacing="6">
+      <Button Content="S"
+              MinWidth="40"
+              ToolTip.Tip="Add a short note"
+              AutomationProperties.Name="Add a short note"
+              Command="{Binding AddShortCommand}" />
+      <Button Content="L"
+              MinWidth="40"
+              ToolTip.Tip="Add a long note"
+              AutomationProperties.Name="Add a long note"
+              Command="{Binding AddLongCommand}" />
+      <Button Content="Backspace"
+              ToolTip.Tip="Remove the last note"
+              Command="{Binding BackspaceCommand}" />
+      <Button Content="Clear"
+              ToolTip.Tip="Remove every note"
+              Command="{Binding ClearCommand}" />
+    </StackPanel>
+    <TextBlock Classes="mono muted small"
+               Text="{Binding ValueText}" />
+    <TextBlock Classes="warn small"
+               TextWrapping="Wrap"
+               IsVisible="{Binding HasWarning}"
+               Text="{Binding Warning}" />
+  </StackPanel>
+</UserControl>

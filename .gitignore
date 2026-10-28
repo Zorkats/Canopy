@@ -1,9 +1,12 @@
 # Local research workspace and analysis tooling, never published.
 _work/
 tools/
+.allyrc
 
 # Build output
 build/
+bin/
+obj/
 cmake-build-*/
 dist/
 vcpkg_installed/
@@ -14,3 +17,6 @@ vcpkg_installed/
 .vscode/
 CMakeUserPresets.json
 *.user
+
+# Python bytecode from the dev scripts
+__pycache__/

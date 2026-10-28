@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="CanopyStudio.Views.Game.ArtThumbnail"
+             Width="40" Height="40">
+  <!-- The placeholder shows while the texture decodes and when it has none. -->
+  <Panel>
+    <Border x:Name="Placeholder"
+            Background="{DynamicResource StudioRaisedBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{DynamicResource StudioRadius}" />
+    <Border x:Name="Frame"
+            Background="{DynamicResource StudioCheckerBrush}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            IsVisible="False">
+      <!-- Already shrunk to fit; a smaller texture is scaled up without
+           smoothing, so pixel art stays sharp. -->
+      <Image x:Name="Picture" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None" />
+    </Border>
+  </Panel>
+</UserControl>

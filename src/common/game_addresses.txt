@@ -1,0 +1,1047 @@
+# Patterns Canopy finds its game addresses and fields with on a build that is
+# not in game_builds.txt. Each line is one way to find one name:
+#
+#     <Name> code [at=<n>] <bytes>
+#         The address is where the bytes match, plus n.
+#     <Name> ref disp=<n> next=<n> to=code|data <bytes>
+#         The bytes hold an instruction that reaches the address through a
+#         rel32 or rip-relative displacement n bytes in, and the instruction
+#         ends next bytes in. to says which kind of section the address must
+#         land in.
+#     <Name> rtti <decorated type name> [offset=<n>] [slot=<k>]
+#         The vtable of that MSVC type, for its subobject at offset n. With
+#         slot, the function in entry k of that vtable instead.
+#     <Name> string <text> lea=<n> at=<n> <bytes>
+#         The bytes hold a rip-relative lea, its displacement n bytes in,
+#         that loads the one NUL-terminated string text. The address is that
+#         match plus at. Tells apart template copies that differ only in the
+#         name they register.
+#     <Name> field read=<n> size=1|2|4 <bytes>
+#         Not an address: a field of a game layout that game_retail.h
+#         declares with GAME_FIELD. The value is the signed little-endian
+#         integer of size bytes, read n bytes into the match, like the
+#         displacement of an instruction that reads the field. A negative
+#         value finds nothing.
+#
+# On a code or string line, at=start makes the address the entry of the
+# function the match lies in, from the exception table, so code that moves
+# inside its function is still found.
+#
+# Bytes are hex pairs or ?? for any byte, searched in the executable
+# sections. A pattern counts only when it matches exactly once. A name with
+# several lines is found when at least one line finds it and every line that
+# finds something agrees.
+#
+# scripts/gen_address_patterns.py writes this file from the builds in
+# game_builds.txt and keeps hand-written lines that still pass.
+
+FrameUpdate code 48 8B C4 48 89 58 08 48 89 70 10 48 89 78 18 4C 89 70 20 55 48 8D 68 A1
+FrameUpdate rtti .?AVCGame@@ slot=1
+FrameUpdate rtti .?AVCGameBase@Ngf@@ slot=1
+AttachTask code 40 53 55 56 57 41 56 48 83 EC 70 45 8B F0 48 8B DA 48 8B F1 48 8B 0A 48 85 C9 74 09 48 8B 01 48 8B D6 FF 50 08 48 8D BE C0 01 00 00 48 8B 1B 48 89 5C 24 48
+AttachTask ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 44 24 20 48 85 C0 74 31 48 8D 48 10 48 0F 44 CF
+AttachTask ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 41 BF 01 00 00 00 48 8B 45 AF 48 85 C0 74 30 48 8D 48 10
+Allocate code 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 49 8B F8 48 8B F2 48 8B E9 F6 C2 0F 0F 85 ?? ?? ?? ??
+Allocate ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 80 3D ?? ?? ?? ?? 00 48 8B D8 74 2D 48 85 C0 74 2D 4C 8B C7
+Allocate ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 80 3D ?? ?? ?? ?? 00 74 0F 48 85 C0 74 0A 0F 57 C0 0F 11 00 0F 11 40 10 48 83 C4 28
+GetLogTextById ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 89 44 24 48 89 74 24 40 48 63 43 10 48 89 44 24 58 C7 44 24 50 02 00 00 00
+GetLogTextById ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B D0 48 8B 85 D0 39 00 00 4D 8B C6 49 FF C0 42 80 3C 02 00
+GetLogTextById ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B D0 48 8D 8D 70 A1 00 00 E8 ?? ?? ?? ?? 48 8D 8D 60 A1 00 00
+PopupSelectCtor code 4C 8B DC 53 55 56 57 41 54 41 55 41 56 41 57 48 81 EC C8 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 B8 00 00 00 49 8B E9 49 8B F0 4C 8B E2
+PopupSelectCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B F8 EB 03 48 8B FE 48 89 BD 40 01 00 00 48 85 FF 74 0D
+PopupSelectCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B F8 EB 03 48 8B FE 48 89 7C 24 70 48 85 FF 74 0D 48 8D 47 10
+ReturnToTitle code 4C 8B DC 49 89 5B 18 49 89 4B 08 55 56 57 48 81 EC A0 00 00 00 48 8B 05 ?? ?? ?? ??
+SoundFade code 48 8B C4 48 89 58 10 57 48 81 EC A0 00 00 00 0F 29 70 E8 0F 29 78 D8 48 8B 05 ?? ?? ?? ??
+SoundFade ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 4D D8 48 85 C9 74 11 48 8D 45 A0 48 3B C8 0F 95 C2 48 8B 01 FF 50 20 90 48 8B 8F 20 06 00 00 F3 0F 10 81 90 02 00 00 41 0F 2E C2
+SoundFade ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 4D A8 48 85 C9 74 12 48 8D 44 24 70 48 3B C8 0F 95 C2 48 8B 01 FF 50 20 90 48 8D 8F 80 02 00 00 E8 ?? ?? ?? ?? F3 44 0F 10 0D ?? ?? ?? ??
+IsReceiverActive code 48 83 EC 28 80 B9 AC 01 00 00 00 74 23 80 B9 D9 00 00 00 00 74 1A 0F 57 C0
+IsReceiverActive ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 84 C0 EB 07 80 B8 AD 01 00 00 00 0F 84 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 8B 80 08 02 00 00 48 83 B8 70 34 00 00 00 0F 85 ?? ?? ?? ?? 8B 80 A8 00 00 00 48 0F BA E0 09 0F 82 ?? ?? ?? ?? 49 8B 5F 08 48 83 BB B0 01 00 00 00 0F 84 ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B E8 4C 8B B3 A8 01 00 00 49 8B 3E 49 3B FE 74 45 66 66 0F 1F 84 00 00 00 00 00 48 8B 77 10 48 8B 1E 48 3B DE 74 27
+IsReceiverActive ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 84 C0 EB 07 80 B8 AD 01 00 00 00 0F 84 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 8B 80 08 02 00 00 48 83 B8 70 34 00 00 00 0F 85 ?? ?? ?? ?? 8B 80 A8 00 00 00 48 0F BA E0 09 0F 82 ?? ?? ?? ?? 49 8B 5F 08 48 83 BB B0 01 00 00 00 0F 84 ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B E8 4C 8B B3 A8 01 00 00 49 8B 3E 49 3B FE 74 39 48 8B 77 10 48 8B 1E 48 3B DE 74 25 66 90 48 8B 4B 10 80 B9 D9 00 00 00 00
+GameDestroy code 48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 83 EC 20 48 8B 1D ?? ?? ?? ??
+GameDestroy rtti .?AVCGame@@ slot=0
+TitleCtor code 48 89 4C 24 08 53 48 83 EC 40 48 8B D9 E8 ?? ?? ?? ?? 90 48 8D 05 ?? ?? ?? ?? 48 89 03 48 8D 05 ?? ?? ?? ?? 48 89 43 10 48 8D 05 ?? ?? ?? ?? 48 89 43 20 48 8D 05 ?? ?? ?? ?? 48 89 83 00 02 00 00
+TitleCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? EB 03 49 8B C6 48 89 44 24 30 48 85 C0 74 0A 48 83 C0 10 74 04 F0 FF 40 08 41 B8 01 00 00 00
+StartLoadGame code 48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 55 41 54 41 55 41 56 41 57 48 8D AC 24 70 FA FF FF
+MainMenuCtor code 48 8B C4 48 89 58 10 48 89 70 18 55 57 41 56 48 8D A8 A8 F9 FF FF 48 81 EC 40 07 00 00
+MainMenuCtor string dailyResultHelp lea=3 at=-919 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B D8 EB 03 49 8B DE 48 89 9D 00 06 00 00
+MainMenuCtor ref disp=9 next=13 to=code BA 02 00 00 00 48 8B CB E8 ?? ?? ?? ?? EB 03 48 8B C6 48 89 45 10 48 85 C0
+PlaySystemSe code 48 8B C4 48 89 58 10 48 89 70 18 48 89 78 20 55 41 54 41 55 41 56 41 57 48 8D A8 78 FB FF FF 48 81 EC 60 05 00 00 0F 29 70 C8 0F 29 78 B8 44 0F 29 40 A8
+PlaySystemSe ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 4C 8B D8 4C 89 7C 24 68 45 33 ED 4C 89 6C 24 60 48 8D 48 58 4C 8D 44 24 68 48 8D 54 24 60 E8 ?? ?? ?? ?? 4C 8B 44 24 60 4D 3B 43 60 41 8B DD
+PlaySystemSe ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 4C 8B D8 4C 89 7C 24 68 45 33 ED 4C 89 6C 24 60 48 8D 48 58 4C 8D 44 24 68 48 8D 54 24 60 E8 ?? ?? ?? ?? 48 8B 44 24 60 49 3B 43 60 75 05 41 8B C5
+PadCapture code 48 89 5C 24 18 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 58
+PadCapture ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 4C 89 65 10 83 7D 30 01 75 5E 48 8B 7D 18 48 85 FF 74 55
+PadCapture ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 4C 89 7D 00 83 7D 20 01 75 5D 48 8B 5D 08 48 85 DB 74 54
+PadManager ref disp=3 next=7 to=data 48 8B 05 ?? ?? ?? ?? 88 88 CC 03 00 00 E9 ?? ?? ?? ?? 66 41 0F 6E C6 0F 5B C0
+PadManager ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? 74 14 45 33 C9 45 33 C0 E8 ?? ?? ?? ?? C6 87 18 03 00 00 01
+PadManager ref disp=3 next=7 to=data 48 8B 05 ?? ?? ?? ?? C6 80 9D 03 00 00 01 48 8B 0D ?? ?? ?? ?? 4C 8B 81 38 03 00 00
+EmptyStringData ref disp=3 next=7 to=data 48 8D 35 ?? ?? ?? ?? 0F 1F 40 00 48 89 5C 24 28 48 89 4B 10 48 89 4B 18
+EmptyStringData ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 44 24 38 33 D2 41 B8 C0 00 00 00 48 8D 4C 24 58
+EmptyStringData ref disp=3 next=7 to=data 48 8D 1D ?? ?? ?? ?? 48 89 5C 24 30 44 8B C7 48 89 7D 87 48 8D 45 8F 48 89 45 CF
+OptionMenuInitialize code 48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8D AC 24 50 16 FF FF
+OptionMenuInitialize rtti .?AVCTask_Menu_Option@@ slot=29
+OptionMenuInitialize string option_base lea=3 at=-438 48 8D 15 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? EB 03
+GetSettingListTable ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B B8 98 00 00 00 48 89 7C 24 78 48 8B B0 A0 00 00 00
+GetSettingTable ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B D8 48 C7 45 D0 07 00 00 00 4C 89 7D C0 48 8D 48 58
+GetSettingTable ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 89 5C 24 20 4C 8D 44 24 20 33 DB 48 8D 54 24 28 4C 8B D8
+GetSettingTable ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B D8 48 C7 44 24 28 07 00 00 00 48 C7 44 24 20 00 00 00 00
+FindParentClass code 4C 8B DC 49 89 5B 18 89 54 24 10 57 48 81 EC 90 00 00 00 48 8B 05 ?? ?? ?? ??
+FindParentClass ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B F8 48 85 C0 0F 84 ?? ?? ?? ?? 48 8B 3D ?? ?? ?? ??
+FindParentClass ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B F8 BA 20 00 00 00 41 B8 B0 00 00 00 48 8B 0D ?? ?? ?? ??
+MainMenuClassId ref disp=8 next=12 to=code 48 83 EC 20 48 8B D9 E8 ?? ?? ?? ?? 8B D0 48 8B CB 48 83 C4 20 5B E9 ?? ?? ?? ??
+MainMenuClassId ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 8B D0 48 8B CF E8 ?? ?? ?? ?? 4C 8B F8 48 85 C0 0F 84 ?? ?? ?? ?? 48 8B 1D ?? ?? ?? ??
+MainMenuClassId ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 8B D0 48 8B CF E8 ?? ?? ?? ?? 4C 8B F8 48 85 C0 0F 84 ?? ?? ?? ?? 48 8B 3D ?? ?? ?? ??
+BindListItemInput code 48 89 5C 24 18 55 56 57 41 56 41 57 48 8D AC 24 60 FD FF FF 48 81 EC A0 03 00 00
+BindListItemInput ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 89 74 24 50 F0 FF 46 08 4C 8D 44 24 50 48 8D 55 30 48 8B 4D B0
+BindListItemInput ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 89 7D B0 F0 FF 47 08 4C 8D 45 B0 48 8D 54 24 58 48 8B 4C 24 50
+OptionMenuCtor code 48 89 5C 24 18 55 56 57 41 56 41 57 48 81 EC 10 07 00 00 48 8B 05 ?? ?? ?? ??
+OptionMenuCtor string optionHelp lea=3 at=-696 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B F8
+OptionMenuCtor ref disp=7 next=11 to=code 45 33 C0 48 8B CB E8 ?? ?? ?? ?? 48 8B C8 EB 03 48 8B CD 48 89 4C 24 30
+OptionMenuClose code 4C 8B DC 53 48 83 EC 60 48 8B D1 80 B9 21 02 00 00 00 75 78 C6 81 21 02 00 00 01
+OptionMenuClose ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 85 DB 74 2F 48 8D 4B 10 49 0F 44 CC 48 85 C9 74 22 8B 41 08 85 C0 74 1B 8B C7 F0 0F C1 41 08 83 F8 01 75 0F 48 83 C1 F0 74 09 48 8B 01 41 8B D5 FF 10 90 48 8B 0D ?? ?? ?? ??
+TitleClassId ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 8B D0 49 8B CD E8 ?? ?? ?? ?? 48 85 C0 75 2C E8 ?? ?? ?? ??
+TitleClassId ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 8B D0 48 8B CB E8 ?? ?? ?? ?? 48 8B F0 48 8B 98 18 02 00 00
+TitleClassId ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 8B D0 49 8B CD E8 ?? ?? ?? ?? 48 8B 98 18 02 00 00 48 8B 5B 20
+Int64MapFind code 45 0F B6 08 4C 8B D2 48 BA B3 01 00 00 00 01 00 00 48 B8 25 23 22 84 E4 9C F2 CB 4C 33 C8 41 0F B6 40 01 4C 0F AF CA 4C 33 C8 41 0F B6 40 02 4C 0F AF CA 4C 33 C8 41 0F B6 40 03 4C 0F AF CA 4C 33 C8 41 0F B6 40 04 4C 0F AF CA 4C 33 C8 41 0F B6 40 05 4C 0F AF CA 4C 33 C8 41 0F B6 40 06 4C 0F AF CA
+Int64MapFind ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 44 24 20 49 3B 43 60 74 12 48 83 C0 18 74 0C 48 8B 00
+Int64MapFind ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B 44 24 20 4D 3B 43 60 74 04 49 8D 58 18 48 85 DB 0F 95 C0
+GetSettingValue code 48 89 5C 24 18 48 89 74 24 20 57 48 83 EC 30 48 8B F9 48 8B DA 48 8B 0D ?? ?? ?? ??
+GetSettingValue ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 0B 44 8B C0 48 8B 11 48 8B 12 E8 ?? ?? ?? ?? 48 83 C3 08
+GetSettingValue ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? 48 8B 91 A8 03 00 00 4C 8B 89 B0 03 00 00 45 33 C0 49 3B D1
+SetSettingValue code 48 89 5C 24 18 48 89 74 24 20 57 48 83 EC 40 48 8B F1 41 8B F8 48 8B 0D ?? ?? ?? ??
+SetSettingValue ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4D 8B 45 18 49 8B 7D 20 49 03 F8 BE FF FF FF 7F 44 8B F6
+SetSettingValue ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 41 B8 01 00 00 00 EB 1A 44 8B 81 90 04 00 00 E8 ?? ?? ?? ??
+ListSetFilter code 4C 8B DC 49 89 5B 20 55 56 57 41 54 41 55 41 56 41 57 48 81 EC A0 00 00 00
+ListSetFilter ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 89 7D 8F 49 8B 9F 98 00 00 00 48 8D 4D 8F E8 ?? ?? ?? ??
+ListSetFilter ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 49 8D 8D 00 02 00 00 48 8B 01 4C 8B 48 08 4C 89 65 08 4C 89 A5 40 0E 00 00
+PadActionCheck code 48 89 5C 24 20 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 90 48 81 EC 70 01 00 00 0F 29 B4 24 60 01 00 00
+PadActionCheck ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 85 C0 74 24 80 B8 80 00 00 00 00 74 1B 80 7D CF 00 74 06
+PadActionCheck ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 85 C0 74 27 38 98 80 00 00 00 74 1F 38 5D BF 74 06 FF 80 BC 00 00 00
+MainMenuCancelStep code 48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8D AC 24 10 FF FF FF 48 81 EC F0 01 00 00 48 8B F1 45 33 E4 45 8B FC
+TitleOptionCancel code 48 89 5C 24 10 48 89 74 24 18 55 57 41 54 41 56 41 57 48 8B EC 48 81 EC 80 00 00 00 4C 8B F1 45 33 E4
+PushLog code 48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 55 41 54 41 55 41 56 41 57 48 8D 6C 24 80 48 81 EC 80 01 00 00
+PushLog ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 0E 48 85 C9 74 2E 48 8D 51 10 48 85 D2 74 25 8B 41 18
+PushLog ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8D 45 B0 48 89 45 D8 4C 89 7D B0 48 8B 07 48 8B 98 40 02 00 00
+GetLogText ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 41 0F 28 DB 41 B8 03 00 00 00 48 8B 95 58 18 00 00 48 8B 0D ?? ?? ?? ??
+GetLogText code 48 89 5C 24 18 55 56 57 41 56 41 57 48 8D AC 24 30 EC FF FF B8 D0 14 00 00
+MakeBgmParam code 40 55 53 56 57 41 56 48 8D 6C 24 D0 48 81 EC 30 01 00 00 48 8B 05 ?? ?? ?? ??
+MakeBgmParam ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 4C 8D 4C 24 38 4C 8B C0 48 8D 54 24 20 48 8B 8F A8 01 00 00
+MakeBgmParam ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 4C 8D 4C 24 30 4C 8B C0 48 8D 54 24 28 48 8B 8B A8 01 00 00 E8 ?? ?? ?? ?? 90 48 8B 8C 24 50 01 00 00 BF FF FF FF FF 48 85 C9 74 1D 8B 41 08 85 C0 74 16 8B C7 F0 0F C1 41 08 83 F8 01 75 0A 48 8B 01 BA 01 00 00 00 FF 10 48 8D 05 ?? ?? ?? ?? 48 89 84 24 A0 00 00 00 48 8D 8C 24 A0 00 00 00 E8 ?? ?? ?? ?? 48 89 AC 24 88 00 00 00 4C 8D 4C 24 50 0F 57 D2 0F 28 CF 48 8B 5C 24 28
+GetBgmTable ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B D8 49 8B 8E 50 02 00 00 48 89 4C 24 30 4C 89 7C 24 20
+GetBgmTable ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B D8 48 89 5C 24 20 4C 89 74 24 38 48 8D 48 58 4C 8D 44 24 20
+GetBgmTable ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 98 98 00 00 00 48 8B B0 A0 00 00 00 48 3B DE 0F 84 ?? ?? ?? ?? 66 44 0F 6F 05 ?? ?? AA 00
+AutoSaveProcessCtor code 48 89 5C 24 18 48 89 74 24 20 48 89 4C 24 08 57 48 83 EC 40 48 8B DA 48 8B F9 E8 ?? ?? ?? ?? 90 48 8D 05 ?? ?? ?? ?? 48 89 07 48 8D 05 ?? ?? ?? ?? 48 89 47 10 48 8D 05 ?? ?? ?? ?? 48 89 47 20 48 8B 03 48 89 87 00 02 00 00 48 85 C0 74 04 F0 FF 40 08 33 F6 48 89 B7 08 02 00 00 48 89 B7 10 02 00 00
+AutoSaveProcessCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? EB 07 49 8B C4 48 8B 5D 9F 48 89 45 97 48 85 C0 74 0A 48 83 C0 10
+AutoSaveBuildSetting code 48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 56 41 57 48 8D 6C 24 D0 48 81 EC 30 01 00 00 4C 8B FA 4C 8B F1 BA 20 00 00 00 41 B8 60 01 00 00
+AutoSaveSucceeded code 48 89 5C 24 10 48 89 6C 24 18 56 57 41 56 48 81 EC D0 00 00 00 48 8B F9
+AutoDeleteCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? EB 02 33 C0 48 89 44 24 30 48 85 C0 74 0A 48 83 C0 10 74 04
+SaveSettingBaseCtor code 48 89 5C 24 10 48 89 74 24 18 57 48 83 EC 20 48 8B D9 33 F6 89 71 08 48 8D 05 ?? ?? ?? ?? 48 89 01 48 89 71 20 48 8D 05 ?? ?? ?? ?? 48 89 41 10 48 8D 41 38 40 88 30 48 89 41 18 48 C7 41 28 40 00 00 00 C7 41 30 02 00 00 00 66 C7 41 78 00 01 48 89 71 7C 48 89 B1 C0 00 00 00 48 89 B1 00 01 00 00
+SaveSettingBaseCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8D 05 ?? ?? ?? ?? 48 89 03 4C 89 A3 48 01 00 00 4C 89 A3 50 01 00 00 48 8D B3 10 01 00 00 48 8B 4E 38 48 85 C9 74 10 48 3B CE 0F 95 C2 48 8B 01 FF 50 20 4C 89 66 38 EB 03 49 8B DC 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 4C 8B D8 48 C7 44 24 38 71 05 00 00 4C 89 64 24 30 48 8D 48 58
+SaveSettingBaseCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8D 05 ?? ?? ?? ?? 48 89 03 4C 89 A3 48 01 00 00 4C 89 A3 50 01 00 00 48 8D B3 10 01 00 00 48 8B 4E 38 48 85 C9 74 10 48 3B CE 0F 95 C2 48 8B 01 FF 50 20 4C 89 66 38 EB 03 49 8B DC 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 4C 8B D8 48 C7 44 24 28 72 05 00 00 4C 89 64 24 20 48 8D 48 58
+SaveUtilAcknowledge code 40 53 48 83 EC 20 83 79 0C 02 48 8B D9 75 45 E8 ?? ?? ?? ?? 48 8B 8B A0 08 00 00
+SaveUtilAcknowledge ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 83 10 02 00 00 48 8B 88 58 01 00 00 48 85 C9 74 06
+SaveUtilAcknowledge ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B BB 10 02 00 00 48 81 C7 C8 00 00 00 48 8B 4F 38 48 85 C9
+GetListCursor code 40 53 48 83 EC 20 48 63 91 B8 05 00 00 85 D2 78 59 4C 8B 81 58 09 00 00
+GetListCursor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 63 C8 48 8D 3C 49 EB 04 48 8D 3C 40 48 C1 E7 04 48 03 BB 80 00 00 00
+GetListCursor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B D0 48 8B CB E8 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? 48 8B 89 00 02 00 00
+SaveInfoCtor code 48 83 EC 28 4C 8B C9 E8 ?? ?? ?? ?? 33 C9 48 8D 05 ?? ?? ?? ?? 4C 8D 15 ?? ?? ?? ??
+SaveInfoCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B F8 EB 02 33 FF 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ??
+SaveInfoCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 49 8D 55 26 48 C1 E2 04 49 03 D7 48 85 C0 74 13 F0 FF 40 08
+LoadMenuFillRows code 48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 41 54 41 55 41 56 41 57 48 83 EC 20 4C 8B FA 4C 8B E9
+LoadMenuFillRows ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8D 4B 10 48 85 DB 48 0F 44 CE 48 85 C9 74 28 8B 41 08
+LoadMenuHeaderText code 48 89 5C 24 18 57 B8 80 10 00 00 E8 ?? ?? ?? ?? 48 2B E0 48 8B FA 33 DB
+LoadMenuHeaderText rtti .?AV?$_Func_impl_no_alloc@V<lambda_1>@?2??initialize_Inner@CState_SaveDataSelect@CTask_GameSaveData_Load@@UEAAXXZ@XAEAVCString@Ngf@@@std@@ slot=2
+MakeLayerKey code 48 89 5C 24 20 56 57 41 56 48 83 EC 30 33 F6 48 89 11 48 89 71 10 49 8B F9
+MakeLayerKey ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8D 95 10 01 00 00 48 8D 8D 00 3F 00 00 E8 ?? ?? ?? ??
+MakeLayerKey ref disp=1 next=5 to=code E8 ?? ?? ?? ?? BE 01 00 00 00 48 89 B5 D0 00 00 00 0F 10 85 90 39 00 00
+LoadEventStart code 48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 55 41 56 41 57 48 8D 6C 24 B9 48 81 EC B0 00 00 00
+LoadEventStart string main lea=3 at=-84 4C 8D 0D ?? ?? ?? ?? 4C 8D 05 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8D 4D D7
+LoadEventStart string main lea=3 at=start 4C 8D 0D ?? ?? ?? ?? 4C 8D 05 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8D 4D D7
+SetGameFlag code 40 53 45 33 DB 44 0F B6 D2 48 8B D1 48 8B 0D ?? ?? ?? ?? 4C 8B CA 48 63 C2
+ScreenFade code 44 89 44 24 18 55 53 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 38 FD FF FF
+ScreenFade ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 44 24 40 48 85 C0 74 2D 48 8D 48 10 49 0F 44 CD
+ScreenFade ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 44 24 30 48 85 C0 74 2C 48 8D 48 10 48 0F 44 CE 48 85 C9 74 1F 8B 41 08 85 C0 74 18 F0 0F C1 59 08 83 FB 01 75 0E 48 83 C1 F0 74 08 48 8B 01 8B D3 FF 10 90 4C 8D 9C 24 B0 00 00 00
+CStringAppend code 48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B FA 48 8B F1 48 C7 C3 FF FF FF FF 0F 1F 40 00 48 FF C3 80 3C 1A 00 75 F7 48 8B 51 10 41 B0 01
+CStringAppend ref disp=1 next=5 to=code E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? B9 22 04 00 00 EB E0 B9 1D 04 00 00 E8 ?? ?? ?? ?? 4C 8B F0 48 8B FE 48 FF C7 80 3C 38 00 75 F7 48 8B 8D A8 04 00 00
+CStringAppend ref disp=1 next=5 to=code E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? B9 22 04 00 00 EB E0 B9 1D 04 00 00 E8 ?? ?? ?? ?? 4C 8B F0 48 8B FE 48 FF C7 80 3C 38 00 75 F7 48 8B 8D B0 02 00 00
+SetListCursor code 40 53 48 83 EC 30 48 8B D9 83 FA FF 75 08 32 C0 48 83 C4 30 5B C3 48 8B 83 60 09 00 00
+SetListCursor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 9C 24 78 22 00 00 0F 28 B4 24 10 22 00 00 48 81 C4 20 22 00 00
+SetListCursor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 83 BD B0 C1 00 00 00 76 07 48 89 BD B0 C1 00 00 48 8D 8D 88 C1 00 00
+ClearGameFlag code 4C 8B D2 48 63 C2 48 C1 F8 06 41 83 E2 3F 4C 8B C9 41 B8 01 00 00 00 41 8B CA 49 D3 E0 4D 23 84 C1 90 00 00 00 48 63 C2 48 C1 F8 06 49 8D 0C C1 48 8B 81 90 00 00 00 4C 0F B3 D0 48 89 81 90 00 00 00
+ClearGameFlag ref disp=8 next=12 to=code 48 8B 89 08 02 00 00 E8 ?? ?? ?? ?? 90 48 85 DB 74 23 8B 43 08 85 C0 74 1C B8 FF FF FF FF F0 0F C1 43 08
+ClearGameFlag ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 8B 43 08 85 C0 74 1A 8B C7 F0 0F C1 43 08 83 F8 01 75 0E 48 8B 03 BA 01 00 00 00 48 8B CB FF 10 90 48 8B 86 A0 02 00 00 C6 80 10 03 00 00 00
+DailyFlagClearCall code E8 ?? ?? ?? ?? 48 83 C3 08 48 3B DE 75 D5 E8 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ??
+EventConditions code 48 89 5C 24 08 48 89 7C 24 10 33 C0 4C 8D 99 90 00 00 00 49 8B F9 48 8B DA
+EventConditions ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 48 8B 93 48 01 00 00 48 85 D2 74 31
+EventConditions ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 8B 9F B4 01 00 00 85 DB 0F 84 ?? ?? ?? ??
+SetupScriptConditionsCall code E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 74 24 30 4C 8B 07 C6 44 24 20 00
+SetupScriptConditionsCall string demo%lld lea=3 at=864 48 8D 15 ?? ?? ?? ?? 48 8D 4D B0 E8 ?? ?? ?? ??
+MapEventSetupScript code 48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8D AC 24 C0 EF FF FF B8 40 11 00 00 E8 ?? ?? ?? ?? 48 2B E0 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 85 30 10 00 00 4C 8B E9
+MapEventSetupScript string demo%lld lea=3 at=-145 48 8D 15 ?? ?? ?? ?? 48 8D 4D B0 E8 ?? ?? ?? ??
+MapEventSetupScript ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 49 89 37 49 8B C7 48 85 F6 74 0D 48 8D 4E 10 48 85 C9 74 04
+MapEventContact code 48 89 5C 24 10 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 D9 48 81 EC A0 00 00 00
+FindCollisionComponent ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B B0 48 02 00 00 48 8B 76 08 48 89 75 1F 48 85 F6 74 04
+FindCollisionComponent ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 88 48 02 00 00 48 8B 49 10 48 8D 05 ?? ?? ?? ?? 48 89 45 00
+FindCollisionComponent ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 41 0F 28 C8 44 0F 28 44 24 20 0F C6 C9 00 0F 59 CE 48 8B 88 48 02 00 00
+LoadCardsListener rtti .?AVCTask_GameSaveData_Load@@ slot=35
+LoadCardsListener code 48 89 5C 24 18 55 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 90 EE FF FF
+LoadCardsListener string infoWin%d lea=3 at=start 48 8D 15 ?? ?? ?? ?? 48 8D 4D E0 E8 ?? ?? ?? ??
+CardModeText code 40 53 48 83 EC 20 4C 63 41 10 48 8B DA 48 8B 41 08 49 83 C0 26 4D 03 C0 4E 8B 0C C0 4D 85 C9 74 4E
+CardModeText rtti .?AV?$_Func_impl_no_alloc@V<lambda_4>@?5??createUICallback@CTask_GameSaveData_Load@@UEAAXXZ@XAEAVCString@Ngf@@@std@@ slot=2
+CarouselInitialize code 48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8D AC 24 F0 DB FF FF
+CarouselInitialize rtti .?AVCState_SaveDataSelect@CTask_GameSaveData_Load@@ slot=29
+CarouselInitialize string saveNo lea=3 at=-2168 4C 8D 05 ?? ?? ?? ?? 33 D2 48 8D 8D D0 0B 00 00
+CarouselPlayTimeText code 48 89 5C 24 08 57 48 83 EC 20 48 8B F9 48 8B DA 48 8B 49 10 48 8B 49 20
+CarouselPlayTimeText rtti .?AV?$_Func_impl_no_alloc@V<lambda_2>@?3??initialize_Inner@CState_SaveDataSelect@CTask_GameSaveData_Load@@UEAAXXZ@XAEAVCString@Ngf@@@std@@ slot=2
+PlayerWalkUpdate code 48 8B C4 48 89 58 18 55 56 57 41 54 41 55 41 56 41 57 48 8D A8 88 FE FF FF 48 81 EC 40 02 00 00 0F 29 70 B8 0F 29 78 A8 44 0F 29 40 98 44 0F 29 48 88 44 0F 29 90 78 FF FF FF 44 0F 29 A0 68 FF FF FF
+PlayerWalkUpdate rtti .?AVCState_Player_Walk@@ slot=27
+PlayerWalkUpdate string playerNueEffect lea=3 at=-2931 4C 8D 0D ?? ?? ?? ?? 4C 8D 05 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ??
+PlayerGetMoveSpeed code 48 89 5C 24 08 57 48 81 EC 90 00 00 00 0F 29 B4 24 80 00 00 00 48 8B 05 ?? ?? ?? ??
+PlayerGetMoveSpeed rtti .?AVCCom_Unit_Player@@ slot=39
+EventSetup code 48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8D 6C 24 E0 48 81 EC 20 01 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 45 18
+EventSetup ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 80 BE D8 00 00 00 00 74 4B 4D 89 26 48 8D 4E 10 48 85 F6
+EventDestroy code 48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 83 EC 20 48 8B D9 48 8D 05 ?? ?? ?? ?? 48 89 01 48 8D 05 ?? ?? ?? ?? 48 89 41 10 48 8D 05 ?? ?? ?? ?? 48 89 41 20 48 8D 05 ?? ?? ?? ?? 48 89 81 48 02 00 00 48 8B 81 18 03 00 00 33 ED 48 85 C0 74 10 48 39 88 F0 00 00 00 75 07 48 89 A8 F0 00 00 00
+TimeUpdate code 48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B D9 48 8B FA 48 8D 0D ?? ?? ?? ??
+TimeUpdate ref disp=1 next=5 to=code E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 4D 17 0F 57 C9 48 85 C9
+PadPushCommand code 4C 8B DC 49 89 5B 10 49 89 6B 18 49 89 73 20 57 41 56 41 57 48 81 EC 80 00 00 00
+PadPushCommand ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 32 C0 48 8B 8D 28 01 00 00 48 33 CC E8 ?? ?? ?? ?? 4C 8D 9C 24 60 02 00 00
+PadPushCommand ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? 4C 8D 44 24 20 0F 57 C0 C7 44 24 28 00 00 00 00 0F 14 C6 0F 57 D2 F2 0F 10 D0 45 33 C9 F3 0F 10 44 24 28 BA 56 05 00 00
+PadDatabase ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B D8 48 8B 0F 48 8B 51 08 48 89 54 24 40 4C 89 7C 24 48
+PadDatabase ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8D 45 80 48 89 5D 80 48 8D 54 24 28 48 C7 44 24 28 00 00 00 00
+PadDatabase ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8D 44 24 28 48 89 5C 24 28 48 8D 54 24 20 48 89 74 24 20 4C 8B D8 48 8D 48 58 E8 ?? ?? ?? ?? 4C 8B 44 24 20 4D 3B 43 60 74 04
+U64MapFind code 45 0F B6 08 4C 8B D2 48 BA B3 01 00 00 00 01 00 00 48 B8 25 23 22 84 E4 9C F2 CB 4C 33 C8 41 0F B6 40 01 4C 0F AF CA 4C 33 C8 41 0F B6 40 02 4C 0F AF CA 4C 33 C8 41 0F B6 40 03 4C 0F AF CA 4C 33 C8 41 0F B6 40 04 4C 0F AF CA 4C 33 C8 41 0F B6 40 05 4C 0F AF CA 4C 33 C8 41 0F B6 40 06 4C 0F AF CA
+U64MapFind ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 44 24 20 49 3B 43 60 74 12 48 83 C0 18 74 0C 48 8B 00
+U64MapFind ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B 44 24 20 4D 3B 43 60 74 04 49 8D 58 18 48 85 DB 0F 95 C0
+ResolvePad code 48 89 5C 24 20 55 56 41 56 48 83 EC 30 49 8B D8 48 8B F2 4C 8B F1 4D 85 C0
+ResolvePad ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 41 B1 01 48 8D 54 24 30 48 8B CE 4C 8B 00 E8 ?? ?? ?? ??
+ResolvePad ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 41 B1 01 4C 8B 00 48 8D 55 A0 48 8B CE E8 ?? ?? ?? ?? 4C 8B C0
+CameraControlUpdate code 48 89 5C 24 20 56 48 81 EC A0 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 60
+TweenStart code 48 83 EC 28 F2 41 0F 10 01 0F 57 C9 66 0F 2E C1 4C 8B D1 7A 37 75 35 F2 41 0F 10 41 08
+TweenStart ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 4C 24 70 48 85 C9 74 12 48 8D 44 24 38 48 3B C8
+TweenStart ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8D 9C 24 A0 00 00 00 49 8B 5B 18 49 8B 73 20 49 8B 7B 28
+SystemLoadSucceeded code 48 83 EC 28 48 8B 41 08 48 8B 90 18 02 00 00 48 8B 05 ?? ?? ?? ?? 48 85 D2
+SystemLoadSucceeded rtti .?AV?$_Func_impl_no_alloc@V<lambda_2>@?1???R<lambda_1>@?1??initialize_Inner@CTask_Save_Process_AutoSystemLoad@@MEAAXXZ@QEBA@PEAVCTask@Ngf@@PEAX_K@Z@X$$V@std@@ slot=2
+U64MapIndex ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 08 4C 89 71 18 4C 89 64 24 50 66 0F 7F 75 80 49 8B 46 10
+U64MapIndex ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 08 48 89 71 18 48 B8 63 6F 6C 49 6E 64 65 78 48 89 44 24 60
+U64MapIndex ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 08 4C 89 71 18 48 8B CB E8 ?? ?? ?? ?? 41 0F 10 86 F0 00 00 00 0F C2 83 D0 03 00 00 00 0F 50 C0 83 E0 03 3C 03 74 1C 41 0F 10 86 F0 00 00 00 0F 11 83 D0 03 00 00 BA 01 00 00 00 48 8B CB E8 ?? ?? ?? ?? 48 89 5C 24 60 F0 FF 43 08 48 8B 56 08 48 3B 56 10 74 0E 48 89 1A
+SetVKeyIndexCall code 48 8B 03 48 89 45 BF 4C 8D 45 BF 48 8D 55 CF 49 8B CC E8 ?? ?? ?? ?? 48 8B 08
+GameInit string Msg_Manager lea=3 at=start 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 90
+GameInit ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 0F B6 D8 48 8D 8D 70 10 00 00 E8 ?? ?? ?? ?? 48 8D 8D F8 0F 00 00
+GameInit code 48 89 5C 24 18 55 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 A0 FD FF FF
+FindArchiveEntry code 40 53 48 81 EC A0 02 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 70 02 00 00
+FindArchiveEntry ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 85 C0 79 3E 4C 8B C6 8B D5 E8 ?? ?? ?? ?? 33 D2 66 83 38 01
+FindArchiveEntry ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 85 C0 79 33 4C 8D 05 ?? ?? ?? ?? 8B D3 E8 ?? ?? ?? ?? 33 D2
+BuildPath code 48 89 5C 24 08 55 56 57 41 56 41 57 B8 60 20 00 00 E8 ?? ?? ?? ?? 48 2B E0
+BuildPath ref disp=3 next=7 to=code 8B D7 E8 ?? ?? ?? ?? 33 D2 66 83 38 01 75 1A 48 8D 48 02 FF 15 ?? ?? ?? ??
+BuildPath ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 33 D2 66 83 38 01 75 0C 48 8D 48 02 FF 15 ?? ?? ?? ?? EB 09 48 8B C8 FF 15 ?? ?? ?? ?? 85 C0 0F 94 C0 84 C0 74 0F 48 8D 15 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ??
+FsExists code 48 89 5C 24 08 57 48 83 EC 20 41 8B D8 48 8B FA 41 83 F8 07 75 03 8B 59 24
+FsExists ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 84 C0 75 3E 48 8B 8B A8 08 00 00 38 41 08 75 0E BA FF FF FF FF
+FsGetSize code 40 53 56 57 48 81 EC 20 01 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 18 01 00 00
+FsOpen code 40 53 55 56 57 41 54 41 55 41 56 41 57 48 81 EC 98 01 00 00 48 8B 05 ?? ?? ?? ??
+FsOpen ref disp=1 next=5 to=code E8 ?? ?? ?? ?? C7 44 24 40 01 00 00 00 48 8B 06 48 85 C0 0F 84 ?? ?? ?? ??
+OpenFileHandle code 48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 50 8B C2 C7 44 24 40 00 00 00 80
+OpenFileHandle ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 4F 10 EB 22 BE 02 00 00 00 4C 8D 77 10 4C 8D 42 58
+OpenFileHandle ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 4F 58 48 89 41 08 B9 90 01 00 00 E8 ?? ?? ?? ?? 48 8B 4F 58
+RegisterGameCommands code 40 53 48 83 EC 20 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B D9 E8 ?? ?? ?? ??
+RegisterGameCommands string VectorGet8AngleNomalize lea=3 at=-28 4C 8D 05 ?? ?? ?? ?? 48 8B CB 48 8B 50 40 48 8B 52 10
+RegisterGameCommands ref disp=3 next=7 to=code 48 8D 05 ?? ?? ?? ?? 48 89 45 60 48 8D 45 58 48 89 85 90 00 00 00 48 8D 45 58
+ScriptModuleLoader code 48 89 5C 24 10 48 89 74 24 18 57 48 81 EC 80 01 00 00 48 8B 05 ?? ?? ?? ??
+ScriptModuleLoader ref disp=3 next=7 to=code 4C 8D 05 ?? ?? ?? ?? 45 33 C9 E8 ?? ?? ?? ?? 48 8B 5E 10 48 8B CB 48 8B 43 20
+ScriptModuleLoader ref disp=3 next=7 to=code 4C 8D 05 ?? ?? ?? ?? 49 8B D7 48 8B 8B 20 02 00 00 E8 ?? ?? ?? ?? 48 8B 9B 20 02 00 00
+ScriptGetCode code 48 89 5C 24 08 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 90 48 81 EC 70 01 00 00
+ScriptGetCode ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 5C 24 30 44 8B 43 18 48 C7 44 24 20 00 00 00 00
+ScriptGetCode ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 5C 24 30 48 8B 43 10 48 89 44 24 38 8B 43 18 48 89 44 24 40
+ScriptCreatePlayer code 48 89 5C 24 08 48 89 74 24 18 48 89 54 24 10 57 48 83 EC 40 49 8B D9 48 8B FA
+ScriptCreatePlayer ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8D 05 ?? ?? ?? ?? 48 89 45 E0 41 BD 01 00 00 00 44 39 6D 00
+ScriptCreatePlayer ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 BE FF FF FF FF 48 8B 4C 24 30 48 85 C9 74 1E 8B 41 08 85 C0 74 17 8B C6 F0 0F C1 41 08 83 F8 01 75 0B 48 8B 01 BA 01 00 00 00 FF 10 90 48 8B 45 E8 48 83 B8 C0 01 00 00 00 75 0A
+ScriptPlayerUpdate code 48 89 5C 24 18 48 89 6C 24 20 56 57 41 54 41 56 41 57 48 83 EC 30 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 28 4C 8B E2 48 8B F1 80 B9 58 02 00 00 00
+ScriptPlayerUpdate ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 45 FF 48 85 C0 74 2C 48 8D 48 10 49 0F 44 CC 48 85 C9
+ScriptPlayerUpdate ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 85 90 07 00 00 48 85 C0 74 2C 48 8D 48 10 49 0F 44 CC
+LuaSetTop code 40 53 48 83 EC 20 48 63 C2 48 8B D9 48 FF C0 85 D2 78 32 48 8B 53 20 48 8B 49 10
+LuaSetTop ref disp=1 next=5 to=code E8 ?? ?? ?? ?? BA FE FF FF FF 48 8B CF E8 ?? ?? ?? ?? 41 B8 01 00 00 00
+LuaSetTop ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 41 B8 0E 00 00 00 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ??
+LuaType code 48 83 EC 28 E8 ?? ?? ?? ?? 4C 8B C8 0F B6 40 08 A8 0F 75 17 48 8B 49 18
+LuaType ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 83 F8 02 75 09 48 8D 05 ?? ?? ?? ?? EB 11 8B D7 48 8B CB
+LuaType ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 8B D0 E8 ?? ?? ?? ?? 4C 8B C0 48 8D 15 ?? ?? ?? ?? 48 8B CB 4C 8B CF E8 ?? ?? ?? ?? CC BA FF FF FF FF 48 8B CB E8 ?? ?? ?? ?? 8B D0
+LuaToLString code 48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 49 8B D8 8B F2 48 8B F9 E8 ?? ?? ?? ??
+LuaToLString ref disp=1 next=5 to=code E8 ?? ?? ?? ?? EB 26 8B D7 E8 ?? ?? ?? ?? 83 F8 02 75 09 48 8D 05 ?? ?? ?? ??
+LuaToLString ref disp=1 next=5 to=code E8 ?? ?? ?? ?? EB 07 48 8D 05 ?? ?? ?? ?? 48 89 44 24 48 4C 8B C8 48 89 74 24 20
+LuaPushLString code 48 89 5C 24 08 57 48 83 EC 20 48 8B D9 4D 85 C0 75 0E 48 8D 15 ?? ?? ?? ??
+LuaPushLString ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 47 10 48 83 C0 F0 0F B6 48 08 80 E1 0F 80 F9 04 74 2F
+LuaPushLString ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8D 43 20 48 39 03 74 1D 48 8B 56 10 45 33 C9 48 83 EA 20
+LuaPushString code 48 89 5C 24 08 57 48 83 EC 20 48 8B FA 48 8B D9 48 85 D2 75 09 48 8B 41 10
+LuaPushString ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8D 8D 00 06 00 00 E8 ?? ?? ?? ?? 48 8D 8D E0 7D 01 00
+LuaPushString ref disp=11 next=15 to=code 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? BA 01 00 00 00 48 8B CB E8 ?? ?? ?? ??
+LuaPushCClosure code 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 49 63 F0 48 8B EA 48 8B F9
+LuaPushCClosure ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 43 18 4C 8D 05 ?? ?? ?? ?? 48 8B CB 48 8B 50 40 48 8B 52 10
+LuaGetStr code 40 53 55 56 57 41 56 48 83 EC 40 4C 8B F2 48 8B E9 49 8B D0 E8 ?? ?? ?? ??
+LuaGetStr ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 5B 08 48 8B 43 20 4C 8B 63 10 4C 2B 20 49 83 EC 10
+LuaGetStr ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 0F 57 C0 33 C0 0F 11 07 48 89 47 10 48 8B 53 08 48 8B 42 20
+LuaCreateTable code 48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 41 8B F8 8B F2 48 8B D9 E8 ?? ?? ?? ??
+LuaCreateTable ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8D 8D E0 7D 01 00 E8 ?? ?? ?? ?? 8B D8 48 8D 8D E0 7D 01 00
+LuaSetStr code 40 53 55 56 57 41 56 48 83 EC 40 48 8B F2 48 8B F9 49 8B D0 E8 ?? ?? ?? ??
+LuaSetStr ref disp=5 next=9 to=code 48 83 C2 10 E8 ?? ?? ?? ?? 48 8B 5C 24 30 48 8B 6C 24 38 48 8B 74 24 40
+LuaSetStr ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 44 89 7D 98 0F 57 C0 0F 14 C7 0F 57 ED F2 0F 10 E8 F3 0F 10 45 98
+LuaSetGlobal code 48 8B 41 18 4C 8B CA 4C 8B 40 40 49 8B 50 10 4D 8B C1 48 83 C2 10 E9 ?? ?? ?? ??
+LuaPCallK code 40 56 57 41 56 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 30
+LuaPCallK ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 85 C0 40 0F 94 C7 4C 89 BD 60 0F 00 00 83 BD 80 0F 00 00 01
+LuaPCallK ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 83 F8 01 76 31 48 8B 43 10 C6 40 08 01 48 83 43 10 10 48 8B 4B 10
+LuaError code 48 83 EC 28 4C 8B 41 10 41 80 78 F8 44 75 1C 48 8B 41 18 48 8B 90 10 01 00 00
+LuaLoadBufferX code 4C 8B DC 49 89 5B 10 57 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 58
+LuaLoadBufferX ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 89 74 24 28 4C 89 74 24 20 45 33 C9 33 D2 41 B8 FF FF FF FF
+LuaLoadBufferX ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 85 C0 0F 85 ?? ?? ?? ?? 48 8B 57 10 48 83 EA 10 41 B9 01 00 01 00
+DebugIsOn string DebugIsOn lea=3 at=-87 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 09 00 00 00 FF 50 08
+DebugIsOn string DebugIsOn lea=3 at=start 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 09 00 00 00 FF 50 08
+DebugGetConfig code 48 89 5C 24 08 48 89 6C 24 10 48 89 7C 24 18 41 56 48 83 EC 20 65 48 8B 04 25 58 00 00 00 48 8B F9 41 BE C8 56 00 00 BD 20 5A 00 00 48 8B 10 4A 63 04 32 85 C0 75 04 33 DB EB 09 48 8D 0C C2 48 8B 5C 29 F8 48 8D 4B 30 48 89 7B 28 48 C7 43 1C 00 00 00 00 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0E 00 00 00 FF 50 08 48 8B 47 20 48 8B 4F 10 48 2B 08 65 48 8B 04 25 58 00 00 00
+DebugGetConfig string DebugGetConfig lea=3 at=-84 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0E 00 00 00 FF 50 08
+DebugGetConfig string DebugGetConfig lea=3 at=start 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0E 00 00 00 FF 50 08
+DebugPrint string DebugPrint lea=3 at=-87 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0A 00 00 00 FF 50 08
+DebugPrint string DebugPrint lea=3 at=start 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0A 00 00 00 FF 50 08
+DebugDisp string DebugDisp lea=3 at=-87 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 09 00 00 00 FF 50 08
+DebugDisp string DebugDisp lea=3 at=start 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 09 00 00 00 FF 50 08
+DebugScreenText string DebugScreenText lea=3 at=-87 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0F 00 00 00 FF 50 08
+DebugScreenText string DebugScreenText lea=3 at=start 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0F 00 00 00 FF 50 08
+DebugScreenText ref disp=3 next=7 to=code 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B CB 48 83 C4 20 5B E9 ?? ?? ?? ??
+DebugIsOnName code 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 09 00 00 00 FF 50 08 48 8B 46 20 48 8B 4E 10 48 2B 08 65 48 8B 04 25 58 00 00 00 48 83 E9 10 48 C1 F9 04 89 4F 18 48 8B 08 4A 63 04 31 85 C0 74 09 48 8D 0C C1 48 8B 5C 29 F8 48 8B 4B 28 48 8B 6C 24 38 48 8B 74 24 40 48 8B 7C 24 48 48 8B 41 10
+DebugIsOnName string DebugIsOn lea=3 at=0 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 09 00 00 00 FF 50 08
+DebugGetConfigName code 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0E 00 00 00 FF 50 08 48 8B 47 20 48 8B 4F 10 48 2B 08 65 48 8B 04 25 58 00 00 00 48 83 E9 10 48 C1 F9 04 89 4B 18 48 8B 08 4A 63 04 31 85 C0 75 04 33 C9 EB 09 48 8D 0C C1 48 8B 4C 29 F8 E8 ?? ?? ?? ?? 65 48 8B 04 25 58 00 00 00 48 8B 08
+DebugGetConfigName code at=84 48 89 5C 24 08 48 89 6C 24 10 48 89 7C 24 18 41 56 48 83 EC 20 65 48 8B 04 25 58 00 00 00 48 8B F9 41 BE C8 56 00 00 BD 20 5A 00 00 48 8B 10 4A 63 04 32 85 C0 75 04 33 DB EB 09 48 8D 0C C2 48 8B 5C 29 F8 48 8D 4B 30 48 89 7B 28 48 C7 43 1C 00 00 00 00 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0E 00 00 00 FF 50 08 48 8B 47 20 48 8B 4F 10 48 2B 08 65 48 8B 04 25 58 00 00 00
+DebugGetConfigName string DebugGetConfig lea=3 at=0 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0E 00 00 00 FF 50 08
+DebugPrintName code 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0A 00 00 00 FF 50 08 48 8B 47 20 48 8B 4F 10 48 2B 08 65 48 8B 04 25 58 00 00 00 48 83 E9 10 48 C1 F9 04 89 4B 18 48 8B 10 4A 63 04 32 85 C0
+DebugPrintName string DebugPrint lea=3 at=0 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0A 00 00 00 FF 50 08
+DebugDispName code 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 09 00 00 00 FF 50 08 48 8B 47 20 48 8B 4F 10 48 2B 08 65 48 8B 04 25 58 00 00 00 48 83 E9 10 48 C1 F9 04 89 4B 18 48 8B 10 4A 63 04 32 85 C0
+DebugDispName string DebugDisp lea=3 at=0 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 09 00 00 00 FF 50 08
+DebugScreenTextName code 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0F 00 00 00 FF 50 08 48 8B 47 20 48 8B 4F 10 48 2B 08 65 48 8B 04 25 58 00 00 00 48 83 E9 10 48 C1 F9 04 89 4B 18 48 8B 08 4A 63 04 31 85 C0 75 05 48 8B CE EB 09 48 8D 0C C1 48 8B 4C 29 F8 E8 ?? ?? ?? ?? 65 48 8B 04 25 58 00 00 00 48 8B 10
+DebugScreenTextName string DebugScreenText lea=3 at=0 48 8D 15 ?? ?? ?? ?? 48 8B 01 41 B9 02 00 00 00 41 B8 0F 00 00 00 FF 50 08
+GameManager ref disp=3 next=7 to=data 48 8B 05 ?? ?? ?? ?? 48 8B 90 08 02 00 00 48 81 C2 18 34 00 00 48 8D 8D 78 10 00 00
+GameManager ref disp=3 next=7 to=data 48 8B 05 ?? ?? ?? ?? 48 8B 90 08 02 00 00 48 81 C2 68 32 00 00 4D 8B 80 D8 02 00 00
+GameManager ref disp=3 next=7 to=data 48 8B 05 ?? ?? ?? ?? 48 8B 88 08 02 00 00 48 81 C1 E0 36 00 00 4D 8B 00 48 8D 54 24 28 E8 ?? ?? ?? ?? 48 8B 08 83 79 18 00 7F 74 48 8B 06 48 8B 08
+DatabaseRegistry ref disp=3 next=7 to=data 48 8B 05 ?? ?? ?? ?? 8B 48 10 89 4F 14 48 8B 07 48 8B CF FF 50 10 8B D8
+DatabaseRegistry ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 4C 8B D8 49 8B 46 10 48 89 44 24 28
+DatabaseRegistry ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B B8 98 00 00 00 48 8B B0 A0 00 00 00 48 3B FE 0F 84 ?? ?? ?? ?? 4C 8B 6C 24 50 48 8B 1F 48 8B 44 24 38
+SaveWork ref disp=3 next=7 to=data 48 8B 05 ?? ?? ?? ?? C7 40 70 FF FF FF FF 48 C7 40 74 FF FF FF 80 E8 ?? ?? ?? ??
+SaveWork ref disp=3 next=7 to=data 48 8B 05 ?? ?? ?? ?? 48 8B 88 F8 03 00 00 48 89 4D D0 48 85 C9 74 04 F0 FF 41 08
+SaveWork ref disp=3 next=7 to=data 4C 8B 05 ?? ?? ?? ?? 49 81 C0 E0 03 00 00 BA 01 00 00 00 48 8B CE E8 ?? ?? ?? ?? 4C 8B 05 ?? ?? ?? ?? 49 81 C0 E8 03 00 00 8B D5 48 8B CE E8 ?? ?? ?? ??
+SaveUtil ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 06 48 8B CE 4C 8D 9C 24 50 05 00 00
+SaveUtil ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 8D 90 07 00 00 48 33 CC E8 ?? ?? ?? ??
+SaveUtil ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? 48 8B 01 FF 50 18 48 8B 15 ?? ?? ?? ?? 83 7A 0C 02 0F 85 ?? ?? ?? ?? 8B 72 10
+FileSystem ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 1B 49 3B DE 75 83 4C 8B 74 24 48
+FileSystem ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? 48 8B D3 8B 79 24 44 8B C7 E8 ?? ?? ?? ?? 85 C0 79 45
+FileSystem ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? 8B 59 24 44 8B C3 48 8D 15 ?? ?? ?? ?? E8 ?? ?? ?? ?? 85 C0 79 34 4C 8D 05 ?? ?? ?? ?? 8B D3 E8 ?? ?? ?? ?? 33 D2 66 83 38 01 75 0C 48 8D 48 02 FF 15 ?? ?? ?? ?? EB 09 48 8B C8 FF 15 ?? ?? ?? ?? 85 C0 0F 94 C0 84 C0 74 0F 48 8D 15 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? 33 D2 48 8B CF E8 ?? ?? ?? ?? 90 48 8B C7 48 8B 5C 24 48 48 8B 74 24 50
+UiTaskRoot ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 90 48 8B 5C 24 28 48 85 DB 0F 84 ?? ?? ?? ??
+UiTaskRoot ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 90 48 8B 5C 24 68 48 85 DB 0F 84 ?? ?? ?? ??
+UiTaskRoot ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 44 24 30 48 85 C0 74 07 C6 80 49 02 00 00 01
+Language ref disp=3 next=7 to=data 48 63 15 ?? ?? ?? ?? 48 8B 08 48 8B 44 D1 58 44 38 20 0F 84 ?? ?? ?? ??
+Language ref disp=2 next=6 to=data 8B 35 ?? ?? ?? ?? 3B B1 7C 04 00 00 75 0C 3A 91 80 04 00 00 0F 84 ?? ?? ?? ??
+Language ref disp=3 next=7 to=data 48 63 05 ?? ?? ?? ?? 83 F8 06 0F 87 ?? ?? ?? ?? 8B 8C 87 88 15 10 00 48 03 CF
+EngineHeap ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? EB 25 F3 0F 6F 47 F0 66 0F 38 17 05 ?? ?? 00 01 73 15 FF 15 ?? ?? ?? ??
+EngineHeap ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? EB 25 F3 0F 6F 43 F0 66 0F 38 17 05 ?? ?? 01 01 73 15 FF 15 ?? ?? ?? ?? 48 8B C8 4C 8D 43 80 33 D2 FF 15 ?? ?? ?? ?? 48 FF C7 48 83 C6 28 48 83 ED 01 0F 85 ?? ?? ?? ??
+EngineHeap ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? EB 25 F3 0F 6F 43 F0 66 0F 38 17 05 ?? ?? 01 01 73 15 FF 15 ?? ?? ?? ?? 48 8B C8 4C 8D 43 80 33 D2 FF 15 ?? ?? ?? ?? 48 FF C7 48 83 C6 38 48 83 ED 01 0F 85 ?? ?? ?? ??
+SoundManager ref disp=3 next=7 to=data 4C 8B 05 ?? ?? ?? ?? 49 81 C0 68 02 00 00 49 8D 9D 38 04 00 00 49 3B D8
+SoundManager ref disp=3 next=7 to=data 48 8B 1D ?? ?? ?? ?? C7 44 24 38 00 00 80 3F C7 44 24 3C FE FF FF FF 48 C7 44 24 40 00 00 80 3F 89 7C 24 48 0F 57 C9 F2 0F 11 4C 24 50 48 8B 05 ?? ?? ?? ?? 48 8B 88 08 01 00 00 48 85 C9 0F 84 ?? ?? ?? ?? 48 8B 01 48 8D 54 24 70 FF 50 10 E9 ?? ?? ?? ?? 49 83 BB 30 37 00 00 64 73 A2 4C 8D 44 24 58
+SoundManager ref disp=3 next=7 to=data 48 8B 1D ?? ?? ?? ?? C7 44 24 38 00 00 80 3F C7 44 24 3C FE FF FF FF 48 C7 44 24 40 00 00 80 3F 89 7C 24 48 0F 57 C9 F2 0F 11 4C 24 50 48 8B 05 ?? ?? ?? ?? 48 8B 88 08 01 00 00 48 85 C9 0F 84 ?? ?? ?? ?? 48 8B 01 48 8D 54 24 70 FF 50 10 E9 ?? ?? ?? ?? 49 83 BB 70 37 00 00 64 73 A2 4C 8D 44 24 58
+SoundSystem ref disp=3 next=7 to=data 48 8B 05 ?? ?? ?? ?? 48 85 C9 0F 84 ?? ?? ?? ?? 48 8B 90 A8 01 00 00 4C 8B 82 A8 01 00 00
+SoundSystem ref disp=3 next=7 to=data 48 8B 05 ?? ?? ?? ?? 48 8B 88 A8 01 00 00 4C 8B 91 A8 01 00 00 4D 8B 02 4D 3B C2 74 45 66 66 0F 1F 84 00 00 00 00 00
+SoundSystem ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 8B B8 68 02 00 00 48 8B 1F 48 3B DF 74 22 90 48 8B 4B 10 44 39 B1 80 03 00 00 75 05
+TimeManager ref disp=3 next=7 to=data 4C 8B 35 ?? ?? ?? ?? F3 44 0F 10 15 ?? ?? ?? ?? F3 44 0F 10 1D ?? ?? ?? ??
+TimeManager ref disp=3 next=7 to=data 48 8B 05 ?? ?? ?? ?? 48 8B 48 08 48 89 8C 1F 80 02 00 00 4C 8D 8B 70 02 00 00
+TimeManager ref disp=3 next=7 to=data 48 8B 05 ?? ?? ?? ?? 0F 14 C8 F2 0F 10 D9 0F 57 C9 0F 5C E3 48 8B 88 78 02 00 00
+ScriptManager ref disp=3 next=7 to=data 48 8B 3D ?? ?? ?? ?? 4C 89 6C 24 30 4D 8B 87 90 02 00 00 49 8B 00 48 8B 98 B8 01 00 00
+ScriptManager ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? 48 8B 89 A8 04 00 00 E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 A5 90 07 00 00
+ScriptManager ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? 48 8B 10 4D 8B 80 98 00 00 00 48 8B 89 A8 04 00 00 48 8B 92 B8 01 00 00 48 8B 5C 24 50
+MouseManager ref disp=3 next=7 to=data 48 8B 1D ?? ?? ?? ?? BA 0B 00 00 00 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ??
+MouseManager ref disp=3 next=7 to=data 4C 8B 05 ?? ?? ?? ?? 41 8B 90 CC 03 00 00 49 8B C8 E8 ?? ?? ?? ?? 0F 57 ED F3 0F 2A E8 41 8B 90 D0 03 00 00 49 8B C8 E8 ?? ?? ?? ?? 0F 57 D2 F3 0F 2A D0 C7 85 58 01 00 00 00 00 00 00 0F 14 EA
+MouseManager ref disp=3 next=7 to=data 4C 8B 05 ?? ?? ?? ?? 41 8B 90 CC 03 00 00 49 8B C8 E8 ?? ?? ?? ?? 66 0F 6E E8 0F 5B ED 41 8B 90 D0 03 00 00 49 8B C8 E8 ?? ?? ?? ?? 66 0F 6E D0 0F 5B D2 89 B5 48 01 00 00 0F 14 EA 0F 57 D2 F2 0F 10 D5
+TalkManager ref disp=3 next=7 to=data 48 8B 1D ?? ?? ?? ?? 48 8D 05 ?? ?? ?? ?? 48 89 44 24 50 48 89 54 24 58
+TalkManager ref disp=3 next=7 to=data 48 8B 0D ?? ?? ?? ?? 48 89 7C 24 40 F0 FF 47 08 48 8D 54 24 40 E8 ?? ?? ?? ??
+TalkManager ref disp=3 next=7 to=data 48 8B 1D ?? ?? ?? ?? 48 8D 05 ?? ?? ?? ?? 48 89 45 70 48 8D 45 70 48 89 85 A8 00 00 00
+KeyboardState ref disp=2 next=7 to=data 83 3D ?? ?? ?? ?? 01 0F 85 ?? ?? ?? ?? F3 0F 10 84 9E 10 06 00 00 F3 0F 58 C7
+KeyboardState ref disp=2 next=7 to=data 83 3D ?? ?? ?? ?? 01 C6 05 ?? ?? ?? ?? 01 75 16 C7 05 ?? ?? ?? ?? 00 00 A0 41
+KeyboardState ref disp=3 next=7 to=data 48 8D 0D ?? ?? ?? ?? 80 7C 08 10 00 EB 11 48 98 48 8D 0D ?? ?? ?? ?? 80 BC 08 10 01 00 00 00
+ControllerStates ref disp=3 next=7 to=data 48 8D 3D ?? ?? ?? ?? 0F 1F 40 00 48 63 C3 48 69 C8 70 02 00 00 48 03 CF
+ControllerStates ref disp=3 next=7 to=data 4C 8D 0D ?? ?? ?? ?? 4A 85 44 09 08 0F 84 ?? ?? ?? ?? B0 01 E9 ?? ?? ?? ??
+ControllerStates ref disp=3 next=7 to=data 0F 54 05 ?? ?? ?? ?? F3 0F 7F 05 ?? ?? ?? ?? F3 0F 7F 0D ?? ?? ?? ?? 41 89 90 0C 09 00 00
+AutoSaveProcessSettingVtable rtti .?AVCTaskSetting_Save_Process_AutoSave@@
+AutoSaveProcessSettingVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 03 4C 89 7B 48 4C 89 BB 88 00 00 00 F0 FF 43 08
+AutoSaveProcessSettingVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 03 4C 89 63 48 4C 89 A3 88 00 00 00 EB 03 49 8B DC
+AutoDeleteSettingVtable rtti .?AVCTaskSetting_SaveData_AutoDelete@Ngf@@
+AutoDeleteSettingVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 07 EB 03 49 8B FC 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ??
+AutoDeleteSettingVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 8B DA 48 89 01 48 8B F9 E8 ?? ?? ?? ?? F6 C3 01 74 54 48 39 3D ?? ?? ?? ?? 77 26 48 39 3D ?? ?? ?? ?? 76 1D 48 8B 0D ?? ?? ?? ?? 48 8B D7 E8 ?? ?? ?? ?? 48 8B C7 48 8B 5C 24 30 48 83 C4 20 5F C3 F3 0F 6F 47 F0 66 0F 38 17 05 ?? ?? 89 00 73 15 FF 15 ?? ?? ?? ?? 4C 8D 47 80
+PlayerComponentVtable rtti .?AVCCom_Unit_Player@@
+PlayerComponentVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 03 48 8D 05 ?? ?? ?? ?? 48 89 43 10 48 8D 05 ?? ?? ?? ?? 48 89 43 20 48 8D 05 ?? ?? ?? ?? 48 89 83 48 02 00 00 48 8B 06
+PlayerComponentVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 01 48 8D 05 ?? ?? ?? ?? 48 89 41 10 48 8D 05 ?? ?? ?? ?? 48 89 41 20 48 8D 05 ?? ?? ?? ?? 48 89 81 48 02 00 00 48 8B 81 10 03 00 00
+CStringVtable rtti .?AVCString@Ngf@@
+CStringVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 44 24 50 83 7C 24 70 01 75 59 48 8B 5C 24 58 48 85 DB 74 48 48 39 1D ?? ?? ?? ?? 77 1A 48 39 1D ?? ?? ?? ?? 76 11 48 8B D3 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? EB 25 F3 0F 6F 43 F0 66 0F 38 17 05 ?? ?? 01 01 73 15 FF 15 ?? ?? ?? ?? 48 8B C8 4C 8D 43 80 33 D2 FF 15 ?? ?? ?? ?? 48 8D 1D ?? ?? ?? ?? FF C6 48 83 C7 30 48 3B FD 0F 85 ?? ?? ?? ?? 4C 8D 9C 24 A0 00 00 00
+CStringVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 44 24 40 83 7C 24 60 01 75 59 48 8B 5C 24 48 48 85 DB 74 48 48 39 1D ?? ?? ?? ?? 77 1A 48 39 1D ?? ?? ?? ?? 76 11 48 8B D3 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? EB 25 F3 0F 6F 43 F0 66 0F 38 17 05 ?? ?? 01 01 73 15 FF 15 ?? ?? ?? ?? 48 8B C8 4C 8D 43 80 33 D2 FF 15 ?? ?? ?? ?? 48 8D 1D ?? ?? ?? ?? FF C6 48 81 C7 48 09 00 00 48 3B FD 0F 85 ?? ?? ?? ?? 4C 8D 9C 24 90 00 00 00
+StopAfterFadeVtable rtti .?AV?$_Func_impl_no_alloc@V<lambda_1>@?1??stopWithFade@CSoundPlayer@Ngf@@QEAAXN@Z@XPEAV34@@std@@
+StopAfterFadeVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 44 24 40 48 8D 44 24 40 48 89 44 24 78 4C 8D 4C 24 40
+StopAfterFadeVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 45 F0 48 8D 45 F0 48 89 45 28 4C 8D 4D F0 F2 0F 10 15 ?? ?? ?? ??
+DatabaseLoad rtti .?AV?$CDatabase@UItemData@@@Ngf@@ slot=1
+ItemDatabase ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 98 98 00 00 00 48 8B B8 A0 00 00 00 48 3B DF 74 6D
+ItemDatabase ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 4E 48 4C 8D 45 C8 48 89 4D C8 48 8D 55 C0 4C 8B D8 48 89 7D C0 48 8D 48 58 E8 ?? ?? ?? ?? 48 8B 5D C0 49 3B 5B 60 75 05 48 8B DF
+ItemDatabase ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 89 5C 24 28 4C 8D 44 24 28 33 DB 48 8D 54 24 20 4C 8B D8 48 89 5C 24 20 48 8D 48 58 E8 ?? ?? ?? ?? 4C 8B 44 24 20 48 8B C7 4D 3B 43 60 75 0F 48 89 5F 10 48 8B 5C 24 50 48 83 C4 30
+CategoryDatabase ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B D8 48 8B CF E8 ?? ?? ?? ?? 41 B1 01 4C 8B 80 60 01 00 00
+CategoryDatabase ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 0B 4C 8D 44 24 38 33 DB 4C 8B D8 48 89 5C 24 30 48 8B 91 60 01 00 00
+IconDatabase ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B D8 48 8B B3 40 02 00 00 48 8B 06 48 8B 88 C0 03 00 00
+IconDatabase ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B D8 48 89 5C 24 28 48 89 7C 24 20 48 8D 48 58 4C 8D 44 24 28
+IconDatabase ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B D8 48 8B 0B 48 8B 51 58 48 89 54 24 48 45 33 F6 4C 89 74 24 40
+AddInventoryItem code 48 89 5C 24 20 55 56 57 41 54 41 55 41 56 41 57 48 8B EC 48 83 EC 70 41 0F B6 D9
+AddInventoryItem ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 8B D8 41 BE FF FF FF FF 85 C0 75 3C 48 89 75 A7 48 8B 5D B7
+AddInventoryItem ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 41 83 FC FF 44 0F 44 64 24 40 45 2B FE 74 36 48 8B 4C 24 50
+LetterCondition code 40 53 55 56 57 41 55 41 56 41 57 48 83 EC 50 48 8B 1D ?? ?? ?? ?? 4D 8B F1
+LetterCondition ref disp=1 next=5 to=code E8 ?? ?? ?? ?? BA 01 00 00 00 B9 15 00 00 00 E8 ?? ?? ?? ?? B0 01 EB 02
+LetterCondition ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4D 8B 04 24 45 8B 80 60 02 00 00 41 8B D5 E8 ?? ?? ?? ??
+EncyclopediaRelease code 40 53 56 57 41 57 48 83 EC 78 45 33 FF 44 88 4C 24 20 48 B8 00 00 00 00 00 00 80 00
+EncyclopediaRelease ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 E9 ?? ?? ?? ?? 48 8B 42 18 48 8B 08 48 8B B9 B8 01 00 00
+EncyclopediaRelease ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8D 9C 24 A0 00 00 00 49 8B 5B 18 49 8B 73 20 41 0F 28 73 F0
+SetSaveFlag code 4C 8B D2 48 63 C2 48 C1 F8 06 41 83 E2 3F 4C 8B C9 41 B8 01 00 00 00 41 8B CA 49 D3 E0 4D 23 84 C1 90 00 00 00 48 63 C2 48 C1 F8 06 49 8D 0C C1 48 8B 81 90 00 00 00 4C 0F AB D0 48 89 81 90 00 00 00
+SetSaveFlag ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 49 8D 4F 30 4C 8D 44 24 38 48 8D 54 24 40 E8 ?? ?? ?? ??
+SetSaveFlag ref disp=1 next=5 to=code E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 45 89 2E E9 ?? ?? ?? ?? 48 0F BA E0 15 B8 0A 00 00 00
+PrepareForSave ref disp=1 next=5 to=code E8 ?? ?? ?? ?? BA 20 00 00 00 41 B8 D8 02 00 00 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B D8 80 3D ?? ?? ?? ?? 00
+PrepareForSave code 40 53 41 56 48 83 EC 28 C7 41 10 83 00 00 00 48 8D 15 ?? ?? ?? ?? 48 8B 41 58
+PrepareForSave string 28775 lea=3 at=start 48 8D 15 ?? ?? ?? ?? 48 8B 41 58 48 8B D9 48 83 C1 58
+SerializeSave code 40 53 48 81 EC 80 01 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 70 01 00 00 48 8B D9 48 8B 41 08
+SerializeSave rtti .?AV?$_Func_impl_no_alloc@V<lambda_1>@?1??initialize_Inner@CTask_Save_Process_AutoSave@@MEAAXXZ@_N$$V@std@@ slot=2
+SerializeSave string SAVEDATA lea=3 at=-110 48 8D 05 ?? ?? ?? ?? 48 89 44 24 28 48 8B 05 ?? ?? ?? ??
+ItemStatusCtor code 48 89 5C 24 20 55 56 57 41 54 41 55 41 56 41 57 48 8B EC 48 83 EC 50 4D 8B E0
+ItemStatusCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B F8 48 89 7C 24 20 48 85 FF 74 04 F0 FF 47 08 48 8B 13
+ItemStatusCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B D8 EB 03 48 8B DE 48 89 5C 24 20 48 85 DB 74 04 F0 FF 43 08
+MapNodeFree ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 8F 98 00 00 00 48 85 C9 74 28 48 8B 97 A8 00 00 00 48 2B D1 48 83 E2 F8 E8 ?? ?? ?? ?? 48 89 B7 98 00 00 00 48 89 B7 A0 00 00 00 48 89 B7 A8 00 00 00 48 8D 4F 58 E8 ?? ?? ?? ?? 48 8B 4F 40 48 85 C9 74 3B 48 8B 57 50 48 B8 67 66 66 66 66 66 66 66 48 2B D1 48 F7 EA 48 C1 FA 04
+MapNodeFree ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 8F 98 00 00 00 48 85 C9 74 28 48 8B 97 A8 00 00 00 48 2B D1 48 83 E2 F8 E8 ?? ?? ?? ?? 48 89 B7 98 00 00 00 48 89 B7 A0 00 00 00 48 89 B7 A8 00 00 00 48 8D 4F 58 E8 ?? ?? ?? ?? 48 8B 4F 40 48 85 C9 74 1C 48 8B 57 50 48 2B D1 48 83 E2 C0 E8 ?? ?? ?? ?? 48 89 77 40 48 89 77 48
+MapNodeFree ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 8F 98 00 00 00 48 85 C9 74 28 48 8B 97 A8 00 00 00 48 2B D1 48 83 E2 F8 E8 ?? ?? ?? ?? 48 89 B7 98 00 00 00 48 89 B7 A0 00 00 00 48 89 B7 A8 00 00 00 48 8D 4F 58 E8 ?? ?? ?? ?? 48 8B 4F 40 48 85 C9 74 2C 48 8B 57 48 E8 ?? ?? ?? ?? 48 8B 4F 40 48 8B 57 50 48 2B D1 48 81 E2 00 FE FF FF
+SubInventoryItem code 48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 20 41 56 48 83 EC 20 48 63 DA
+SubInventoryItem ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B CE E8 ?? ?? ?? ?? 48 B8 DB 34 B6 D7 82 DE 1B 43 49 F7 EF
+SubInventoryItem ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 4D D8 48 85 C9 74 2F 48 8B 55 E8 48 2B D1 48 B8 67 66 66 66 66 66 66 66
+ItemStatusVtable rtti .?AVCItemStatus@@
+ItemStatusVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 01 48 8D 05 ?? ?? ?? ?? 48 89 41 10 48 8B 89 B0 02 00 00
+ItemStatusVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 49 89 06 48 8D 05 ?? ?? ?? ?? 49 89 46 10 33 FF 49 89 BE 40 02 00 00
+ResetSaveData code 48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8D 6C 24 C9 48 81 EC A0 00 00 00 4C 8B E9 B9 50 04 00 00 E8 ?? ?? ?? ??
+ResetSaveData ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 49 8B CE E8 ?? ?? ?? ?? 4C 8B C8 48 89 45 A0 48 8D 8D 60 78 00 00
+ResetSaveData ref disp=1 next=5 to=code E8 ?? ?? ?? ?? B2 01 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 1D ?? ?? ?? ?? E8 ?? ?? ?? ?? 44 8B C0
+AfterLoadFixup code 48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 41 56 41 57 48 83 EC 40 48 8B 1D ?? ?? ?? ?? 48 83 BB C0 04 00 00 00
+AfterLoadFixup ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 3D ?? ?? ?? ?? BA 20 00 00 00 41 B8 40 02 00 00 48 8B 0D ?? ?? ?? ??
+AfterLoadFixup ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 35 ?? ?? ?? ?? BA 20 00 00 00 41 B8 40 02 00 00 48 8B 0D ?? ?? ?? ??
+LoadContinueInPlace code 48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8D AC 24 60 EF FF FF B8 A0 11 00 00 E8 ?? ?? ?? ?? 48 2B E0 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 85 90 10 00 00 48 8B F1
+LoadContinueInPlace string ContinueAreaID lea=3 at=-261 48 8D 05 ?? ?? ?? ?? 48 89 44 24 40 48 8D 85 B0 0F 00 00
+LoadContinueInPlace ref disp=8 next=12 to=code 48 8B 89 48 03 00 00 E8 ?? ?? ?? ?? 48 8B 74 24 38 48 85 DB 48 8B 5C 24 30
+SetFlagValue code 40 53 45 33 D2 48 63 C2 48 C1 F8 06 4C 8B CA 41 83 E1 3F 41 0F B6 D8 48 8B 84 C1 90 00 00 00
+SetFlagValue ref disp=1 next=5 to=code E8 ?? ?? ?? ?? EB 44 41 C7 86 80 02 00 00 00 00 80 3F 45 33 C0 BA EA 00 00 00
+SetFlagValue ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 8B 88 08 02 00 00 48 8B 81 98 09 00 00
+CharaTableLoad rtti .?AV?$CDatabase@UCharaData@@@Ngf@@ slot=1
+CharaScheduleLoad rtti .?AV?$CDatabase@UCharaScheduleData@@@Ngf@@ slot=1
+MapObjectStatusCtor code 48 89 5C 24 10 48 89 74 24 18 48 89 4C 24 08 57 48 83 EC 20 49 8B F0 48 8B FA 48 8B D9 E8 ?? ?? ?? ??
+MapObjectStatusCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8D 05 ?? ?? ?? ?? 48 89 07 48 8D 05 ?? ?? ?? ?? 48 89 47 10 33 C0 48 89 87 40 02 00 00
+MapObjectStatusCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8D 05 ?? ?? ?? ?? 48 89 07 48 8D 05 ?? ?? ?? ?? 48 89 47 10 45 33 FF 4C 89 BF 40 02 00 00
+UnitStatusMemberInit code 48 89 5C 24 10 57 48 83 EC 30 48 8B D9 48 89 4C 24 20 33 FF 89 39 48 89 79 08 48 89 79 10 B9 28 00 00 00
+UnitStatusMemberInit ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8D 05 ?? ?? ?? ?? 48 89 07 48 8D 05 ?? ?? ?? ?? 48 89 47 10 4C 89 BF 90 02 00 00
+UnitStatusMemberInit ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8D 05 ?? ?? ?? ?? 48 89 03 48 8D 05 ?? ?? ?? ?? 48 89 43 10 4C 89 A3 90 02 00 00
+Int64MapInit ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 33 C0 48 89 85 88 00 00 00 48 89 7D 40 4C 89 B5 90 00 00 00 48 89 B5 98 00 00 00 33 F6 48 89 75 A8 49 8D 57 04 4C 8D 4C 24 70 45 8B 07 48 8D 4D D0 E8 ?? ?? ?? ?? 90 48 8D 05 ?? ?? ?? ?? 48 89 44 24 38 48 89 5C 24 40 48 8D 05 ?? ?? ?? ?? 48 89 44 24 30 48 8B 45 C0 48 8D 54 24 30 48 8D 4D C0 FF 50 38 90 8B 45 F0 48 83 C0 04 4C 03 F8 48 81 C3 20 06 00 00 48 8D 05 ?? ?? ?? ??
+Int64MapInit ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 33 D2 48 89 95 88 00 00 00 48 89 7D 40 4C 89 A5 90 00 00 00 48 89 B5 98 00 00 00 33 F6 48 89 75 A0 48 8B 7C 24 38 48 8D 57 04 4C 8D 4C 24 68 44 8B 07 48 8D 4D D0 E8 ?? ?? ?? ?? 90 48 8D 05 ?? ?? ?? ?? 48 89 44 24 48 48 89 5C 24 50 48 8D 05 ?? ?? ?? ?? 48 89 44 24 40 48 8B 45 C0 48 8D 54 24 40 48 8D 4D C0 FF 50 38 90 8B 45 F0 48 83 C0 04 48 03 F8 48 89 7C 24 38 48 83 EB 80
+Int64MapInit ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 33 C0 48 89 85 88 00 00 00 48 89 7D 40 4C 89 B5 90 00 00 00 48 89 B5 98 00 00 00 33 F6 48 89 75 A8 49 8D 57 04 4C 8D 4C 24 70 45 8B 07 48 8D 4D D0 E8 ?? ?? ?? ?? 90 48 8D 05 ?? ?? ?? ?? 48 89 44 24 38 48 89 5C 24 40 48 8D 05 ?? ?? ?? ?? 48 89 44 24 30 48 8B 45 C0 48 8D 54 24 30 48 8D 4D C0 FF 50 38 90 8B 45 F0 48 83 C0 04 4C 03 F8 48 81 C3 B8 02 00 00 48 8D 05 ?? ?? ?? ??
+NpcTalkHistoryInit code 48 89 4C 24 08 48 83 EC 48 48 8D 05 ?? ?? ?? ?? 48 89 44 24 30 45 33 C0 41 8B D0 48 89 54 24 28 88 54 24 20 48 83 FA 03 73 1C 48 8D 04 52 4C 89 04 C1
+NpcTalkHistoryInit ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4D 89 BE 58 03 00 00 49 89 BE 90 02 00 00 EB 03 4D 8B F7
+NpcTalkHistoryInit ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 C7 86 08 03 00 00 00 00 00 01 4C 89 BE 10 03 00 00 4C 89 BE 18 03 00 00
+AreaOrigin code 48 89 74 24 18 57 48 83 EC 40 48 8B F1 48 8B 0A 48 8B 41 60 48 8D 51 68
+AreaOrigin ref disp=1 next=5 to=code E8 ?? ?? ?? ?? F3 0F 10 45 EB F3 0F 10 4D E7 0F 14 C8 0F 57 DB F2 0F 10 D9
+AreaOrigin ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 4C 8B 4B 10 48 8D 54 24 30 F3 0F 10 4C 24 24 0F 57 E4 F3 0F 10 44 24 20
+UnitSetPosition code 48 89 74 24 18 57 48 83 EC 50 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 30
+UnitSetPosition ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B D3 E8 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 4C 8B 88 08 02 00 00
+UnitSetPosition ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 49 8B 07 49 8B CF FF 50 28 48 8B 05 ?? ?? ?? ?? 48 8B 88 08 02 00 00
+NpcStatusInitCode code 48 89 5C 24 10 48 89 74 24 18 57 48 81 EC A0 00 00 00 0F 29 B4 24 90 00 00 00 48 8B F9 C6 81 31 01 00 00 00 48 81 C1 10 02 00 00 E8 ?? ?? ?? ?? 48 8D 8F 28 02 00 00 E8 ?? ?? ?? ?? 48 8D 8F 48 02 00 00 E8 ?? ?? ?? ?? 48 8B 35 ?? ?? ?? ?? 48 8B 87 90 02 00 00 48 8B 08 48 8B 99 C8 00 00 00
+NpcStatusInitCode rtti .?AVCNpcStatus@@ slot=5
+UnitStatusVtable rtti .?AVCUnitStatus@@
+UnitStatusVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 07 48 8D 05 ?? ?? ?? ?? 48 89 47 10 45 33 FF
+UnitStatusVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 01 48 8D 05 ?? ?? ?? ?? 48 89 41 10 48 8B 89 60 02 00 00
+UnitStatusSecondVtable rtti .?AVCUnitStatus@@ offset=16
+UnitStatusSecondVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 49 89 46 10 4D 89 BE 40 02 00 00 49 8D 8E 48 02 00 00
+UnitStatusSecondVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 43 10 33 FF 48 89 BB 40 02 00 00 48 8D 8B 48 02 00 00 E8 ?? ?? ?? ?? 90 48 8D 05 ?? ?? ?? ?? 48 89 03 48 8D 05 ?? ?? ?? ?? 48 89 43 10 48 89 BB 90 02 00 00 0F 57 C0
+NpcStatusVtable rtti .?AVCNpcStatus@@
+NpcStatusVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 01 48 8D 05 ?? ?? ?? ?? 48 89 41 10 48 81 C1 10 03 00 00
+NpcStatusVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 03 48 8D 05 ?? ?? ?? ?? 48 89 43 10 48 89 BB 90 02 00 00 48 89 BB 98 02 00 00 48 89 BB A0 02 00 00 C7 83 A8 02 00 00 FF FF FF FF
+NpcStatusSecondVtable rtti .?AVCNpcStatus@@ offset=16
+NpcStatusSecondVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 41 10 48 81 C1 10 03 00 00 4C 8D 0D ?? ?? ?? ??
+NpcStatusSecondVtable ref disp=3 next=7 to=data 48 8D 05 ?? ?? ?? ?? 48 89 43 10 48 89 BB 90 02 00 00 48 89 BB 98 02 00 00 48 89 BB A0 02 00 00
+LoveGaugeVtable rtti .?AV?$CFixGauge@H$0A@$0IDE@$0A@@Ngf@@
+LoveGaugeVtable ref disp=3 next=7 to=data 48 8D 0D ?? ?? ?? ?? 48 89 08 89 78 08 48 8D 8B D0 02 00 00 E8 ?? ?? ?? ??
+LoveGaugeVtable ref disp=3 next=7 to=data 48 8D 0D ?? ?? ?? ?? 48 89 08 44 89 78 08 49 8D 8E D0 02 00 00 E8 ?? ?? ?? ??
+SaleItemInfoVtable rtti .?AVCSaleItemInfo@CStoreStatus@@
+SaleItemInfoVtable ref disp=3 next=7 to=data 4C 8D 25 ?? ?? ?? ?? 0F 1F 40 00 44 89 5A 08 4C 89 22 4C 89 5A 10 4C 89 5A 18
+SaleItemInfoVtable ref disp=3 next=7 to=data 4C 8D 05 ?? ?? ?? ?? 49 83 FC 02 0F 8C ?? ?? ?? ?? 49 8D 76 E0 49 C7 C7 E8 FF FF FF
+VectorAllocate code 48 83 EC 38 48 85 C9 75 07 33 C0 48 83 C4 38 C3 48 81 F9 00 10 00 00 72 7F
+VectorAllocate ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B F0 33 ED 4B 8D 04 B6 48 8D 0C C6 48 8B C7 49 2B C6
+VectorAllocate ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 69 CB D8 02 00 00 48 8B D5 4C 8B F0 48 03 C8 48 2B D3
+VectorDeallocate code 48 83 EC 38 48 81 FA 00 10 00 00 72 14 48 8B 41 F8 48 2B C8 48 83 E9 08
+VectorDeallocate ref disp=8 next=12 to=code 48 81 E2 00 FE FF FF E8 ?? ?? ?? ?? 33 C0 48 89 03 48 89 43 08 48 89 43 10
+VectorDeallocate ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 9C 24 80 00 00 00 48 89 2E 49 69 C4 A8 00 00 00 48 03 C5
+TitleInit code 48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8D AC 24 A0 D5 FF FF
+TitleInit rtti .?AVCTask_Title@@ slot=29
+TitleInit string title_base lea=3 at=-571 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B D8 EB 03 49 8B DD 48 89 9D 30 26 00 00
+AddTextPart code 40 55 53 56 57 41 54 41 56 41 57 48 8D AC 24 80 FA FF FF 48 81 EC 80 06 00 00
+AddTextPart ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 83 BD 60 6E 00 00 00 76 07 4C 89 A5 60 6E 00 00 48 8D 8D 38 6E 00 00
+AddTextPart ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 83 BD 30 61 00 00 00 76 07 4C 89 A5 30 61 00 00 48 8D 8D 08 61 00 00
+PartsSettingCtor code 48 89 5C 24 10 48 89 4C 24 08 57 48 83 EC 20 49 8B D9 49 8B C0 48 8B F9
+PartsSettingCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 83 BD 18 41 00 00 00 76 07 48 89 BD 18 41 00 00 BA 16 00 00 00
+PartsSettingCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 89 85 48 A1 00 00 48 8B 76 20 48 89 B5 30 A1 00 00 48 8B D0
+MakeLayerPath code 48 89 4C 24 08 53 48 83 EC 40 48 8B D9 4C 8D 0D ?? ?? ?? ?? 48 8D 4C 24 20
+MakeLayerPath ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8D 8D 00 06 00 00 49 8B D5 66 0F 1F 44 00 00 0F 10 00
+MakeLayerPath ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 C7 44 24 30 C7 87 E3 01 48 8D 85 C0 06 00 00 48 89 44 24 28 48 8D 85 80 00 00 00
+TextParamCtor code 48 89 5C 24 18 57 48 83 EC 50 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 40 48 8B D9 48 89 4C 24 20 48 8D 05 ?? ?? ?? ?? 48 89 01 48 8B 05 ?? ?? ?? ?? 48 8B 80 20 01 00 00 33 FF 48 85 C0 74 08 48 8B 00 48 8B 08 EB 03 48 8B CF 48 89 4B 10 49 C7 C0 FF FF FF FF 44 89 43 18 48 8D 4B 20 48 89 4C 24 30 48 89 79 10 48 89 79 18 89 79 20 48 8D 05 ?? ?? ?? ?? 48 89 41 08 48 8D 05 ?? ?? ?? ??
+TextParamCtor ref disp=15 next=19 to=code 48 8B 95 40 1E 00 00 48 8D 8D 60 03 00 00 E8 ?? ?? ?? ?? 90 66 C7 45 68 01 00
+TextParamCtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 C7 80 E0 00 00 00 04 00 00 00 66 0F 6F 05 ?? ?? BF 00 0F 11 80 F0 00 00 00 66 C7 85 A8 0A 00 00 01 00 4C 8D 25 ?? ?? ?? ?? 4C 89 A5 A0 0A 00 00 48 8B D0 48 8D 8D B0 0A 00 00 E8 ?? ?? ?? ?? C6 85 48 0C 00 00 00 C6 85 98 0C 00 00 00 48 8D 8D 80 05 00 00 E8 ?? ?? ?? ?? 4C 89 6D 08
+TextParamCopy code 48 89 5C 24 18 48 89 4C 24 08 55 56 57 48 83 EC 20 48 8B FA 48 8B D9 48 8D 05 ?? ?? ?? ?? 48 89 01 48 8B 42 10 48 89 41 10 8B 42 18 89 41 18 48 83 C1 20
+TextParamCopy ref disp=1 next=5 to=code E8 ?? ?? ?? ?? C6 85 68 20 00 00 00 C6 85 B8 20 00 00 00 C7 85 28 C0 00 00 00 00 00 00
+TextParamCopy ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 89 BD 70 07 00 00 48 85 FF 74 04 F0 FF 47 08 48 8D 05 ?? ?? ?? ??
+TextParamDtor code 48 89 5C 24 08 57 48 83 EC 20 48 8B D9 48 8D 05 ?? ?? ?? ?? 48 89 01 48 8D B9 90 00 00 00
+TextParamDtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8D 8D 50 0E 00 00 E8 ?? ?? ?? ?? 90 48 8D 8D D8 A4 00 00
+TextParamDtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8B 4D 08 48 85 C9 74 11 48 8D 45 D0 48 3B C8 0F 95 C2 48 8B 01 FF 50 20 90 48 85 DB 74 29 48 85 FF 74 24 8B 47 08 85 C0 74 1D
+TextSettingDtor code 48 89 5C 24 08 57 48 83 EC 20 48 8B D9 48 8D 05 ?? ?? ?? ?? 48 89 01 80 B9 F8 01 00 00 00
+TextSettingDtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8D 8D 70 25 00 00 E8 ?? ?? ?? ?? 90 48 8B 8D E8 04 00 00
+TextSettingDtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 90 48 8D 8D A0 24 00 00 E8 ?? ?? ?? ?? 90 48 8B 8D 98 05 00 00
+TextSettingVtable rtti .?AVCSetting@CUIUnion_Text@Ngf@@
+TextSettingVtable ref disp=3 next=7 to=data 48 8D 1D ?? ?? ?? ?? 48 89 9D 70 05 00 00 48 8D 95 70 0B 00 00 48 8D 8D 80 05 00 00
+TextSettingVtable ref disp=3 next=7 to=data 4C 8D 25 ?? ?? ?? ?? 4C 89 A5 A0 0A 00 00 48 8B D0 48 8D 8D B0 0A 00 00 E8 ?? ?? ?? ?? C6 85 48 0C 00 00 00 C6 85 98 0C 00 00 00 48 8D 8D 80 05 00 00 E8 ?? ?? ?? ?? 4C 89 6D 48 0F 57 F6 C7 85 88 08 00 00 00 00 00 00
+StringDtor code 40 57 48 83 EC 20 83 79 20 01 48 8D 05 ?? ?? ?? ?? 48 89 01 48 8B F9 75 74
+StringDtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 83 C3 48 48 83 EF 01 75 EE E9 ?? ?? ?? ?? 0F 86 ?? ?? ?? ?? 0F 57 C0 33 C0 0F 11 44 24 28
+StringDtor ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 83 C3 30 48 83 EF 01 75 EE E9 ?? ?? ?? ?? 0F 86 ?? ?? ?? ?? 0F 57 C0 0F 11 44 24 20 0F 11 44 24 40 4C 8D 2D ?? ?? ?? ?? 4C 89 6C 24 20 F3 0F 7F 44 24 30 45 33 FF 44 89 7C 24 40 4C 8D 25 ?? ?? ?? ?? 4C 89 64 24 28 48 8D 1C 7F 48 C1 E3 04 48 83 C3 08 49 03 DE 48 8B EE 48 2B EF 74 4C 48 8B 7C 24 48 0F 1F 40 00 0F 1F 84 00 00 00 00 00 48 89 9C 24 80 00 00 00 4C 89 7B 10
+WhistleTableLoad rtti .?AV?$CDatabase@UWhistleData@@@Ngf@@ slot=1
+CraftTableLoad rtti .?AV?$CDatabase@UCraftData@@@Ngf@@ slot=1
+CookingTableLoad rtti .?AV?$CDatabase@UCookingData@@@Ngf@@ slot=1
+FavoriteInsert ref disp=1 next=5 to=code E8 ?? ?? ?? ?? 48 8B 08 C6 41 18 01 48 83 C7 08 49 3B FE 75 D8 48 8B 0B
+FavoriteInsert ref disp=8 next=12 to=code 49 8D 8B 20 37 00 00 E8 ?? ?? ?? ?? 48 8B 08 C6 41 18 01 48 8B 1D ?? ?? ?? ??
+FavoriteInsert ref disp=8 next=12 to=code 49 8D 8B 60 37 00 00 E8 ?? ?? ?? ?? 48 8B 08 C6 41 18 01 48 8B 1D ?? ?? ?? ??
+DatabaseManagerLoad code 48 89 5C 24 18 48 89 54 24 10 55 56 57 41 54 41 55 41 56 41 57 48 8D 6C 24 D9
+DatabaseManagerLoad ref disp=6 next=10 to=code 33 D2 48 8B CF E8 ?? ?? ?? ?? 90 48 8B C7 48 8B 5C 24 48 48 8B 74 24 50
+LoadMenuStateAllocSize code at=1 B9 78 02 00 00 E8 ?? ?? ?? ?? 48 8B F0 48 89 45 60 48 85 C0 0F 84 ?? ?? ?? ??
+LoadMenuStateAllocSize code at=2 41 B8 78 02 00 00 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B F0 80 3D ?? ?? ?? ?? 00 74
+LoadMenuStateClear code at=2 41 B8 78 02 00 00 48 8B CE E8 ?? ?? ?? ?? 41 8B 5E 08 48 8B CE E8
+LoadMenuStateClear code at=2 41 B8 78 02 00 00 48 8B C8 E8 ?? ?? ?? ?? 41 8B 5E 08 48 8B CE E8 ?? ?? ?? ??
+LoadMenuRowConstruct code BA 05 00 00 00 E8 ?? ?? ?? ?? 90 EB 03 49 8B F4 48 89 75 60 48 85 F6 74 0D
+LoadMenuRowDestruct code 41 B8 05 00 00 00 E8 ?? ?? ?? ?? 90 48 8B 8F 20 02 00 00 48 85 C9 74 21
+LoadMenuRowDestruct code at=80 48 89 5C 24 08 57 48 83 EC 20 8B DA 48 8B F9 48 8D 05 ?? ?? ?? ?? 48 89 01 48 8D 05 ?? ?? ?? ?? 48 89 41 10 48 8D 05 ?? ?? ?? ?? 48 89 41 20 48 8D 05 ?? ?? ?? ?? 48 89 81 00 02 00 00 48 81 C1 28 02 00 00 4C 8D 0D ?? ?? ?? ?? BA 10 00 00 00 41 B8 05 00 00 00 E8 ?? ?? ?? ?? 90 48 8B 8F 20 02 00 00
+LoadMenuRowItemLoop code 83 FF 05 0F 8C ?? ?? ?? ?? 49 8B 85 20 02 00 00 48 89 44 24 48 48 85 C0
+LoadMenuRowItemLoop string saveNo lea=3 at=3629 4C 8D 05 ?? ?? ?? ?? 33 D2 48 8D 8D D0 0B 00 00
+LoadMenuPlayTimeBound code at=29 48 89 5C 24 08 57 48 83 EC 20 48 8B F9 48 8B DA 48 8B 49 10 48 8B 49 20
+LoadMenuPlayTimeBound code 83 F8 04 77 3A 4C 8D 40 23 48 8B 47 08 4D 03 C0 4A 8B 14 C0 48 85 D2 74 09
+LoadMenuGameTimeBound code 83 F8 04 0F 87 ?? ?? ?? ?? 48 8D 70 23 48 03 F6 48 8B 45 08 48 8B 14 F0
+LoadMenuGameTimeBound code at=44 48 8B C4 48 89 58 10 48 89 68 18 48 89 70 20 57 48 83 EC 70 48 8B FA 48 8B E9
+LoadMenuStateDebugClear code at=2 41 B8 78 02 00 00 48 8B C8 E8 ?? ?? ?? ?? 48 89 75 60 48 85 F6 0F 84 ?? ?? ?? ??
+KeyboardDown field read=3 size=1 4C 3B 40 ?? 75 F1 EB 02 33 C0 48 89 6C 24 38 48 C7 44 24 30 00 00 00 00
+KeyboardDown field read=3 size=1 48 3B 48 ?? 74 24 0F 1F 44 00 00 48 3B C2 74 18 48 8B 40 08 48 3B 48 10
+KeyboardDown field read=3 size=1 4C 3B 40 ?? 74 13 48 3B C1 74 0C 48 8B 40 08 4C 3B 40 10 75 F1 EB 02 33 C0 48 89 6C 24 38 48 C7 44 24 30 00 00 00 00
+FsDefaultRoot field read=3 size=1 44 8B 41 ?? 48 89 AC 24 B0 02 00 00 48 89 B4 24 B8 02 00 00 48 89 BC 24 C0 02 00 00
+FsDefaultRoot field read=2 size=1 8B 69 ?? 44 8B C5 48 8B D6 E8 ?? ?? ?? ?? 85 C0 79 3E 4C 8B C6 8B D5 E8 ?? ?? ?? ??
+FsDefaultRoot field read=2 size=1 8B 59 ?? 44 8B C3 48 8D 15 ?? ?? ?? ?? E8 ?? ?? ?? ?? 85 C0 79 34 4C 8D 05 ?? ?? ?? ?? 8B D3 E8 ?? ?? ?? ?? 33 D2 66 83 38 01 75 0C 48 8D 48 02 FF 15 ?? ?? ?? ?? EB 09 48 8B C8 FF 15 ?? ?? ?? ?? 85 C0 0F 94 C0 84 C0 74 0F 48 8D 15 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ??
+BuildPathCapacity field read=1 size=4 BA ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 90 48 8B 44 24 48 48 83 F8 07 0F 86 ?? ?? ?? ??
+BuildPathCapacity field read=2 size=4 48 3D ?? ?? ?? ?? 72 27 48 8B 7F F8 48 2B CF 48 83 E9 08 48 83 F9 1F 76 16 4C 89 7C 24 20 45 33 C9
+BuildPathCapacity field read=2 size=4 48 3D ?? ?? ?? ?? 72 27 48 8B 5B F8 48 2B CB 48 83 E9 08 48 83 F9 1F 76 16 4C 89 6C 24 20 45 33 C9
+GameLogId field read=3 size=1 4C 39 71 ?? 75 17 41 83 CC 01 48 8B 0E 48 8B 10 48 8B 01 48 39 02 75 05
+GameLogId field read=3 size=1 4C 39 69 ?? 75 50 48 8B 51 18 0F 57 C9 48 85 D2 78 07 F2 48 0F 2A CA EB 15
+GameLogId field read=3 size=1 4C 8B 77 ?? 4C 89 74 24 20 45 33 FF 4C 89 7C 24 30 48 8D 48 58 4C 8D 44 24 20
+GameLogSource field read=3 size=1 48 8B 41 ?? 48 85 C0 75 05 45 32 FF EB 2A 4C 39 71 40 75 17 41 83 CC 01
+GameLogSource field read=3 size=1 48 8B 41 ?? 48 85 C0 74 61 48 3B C6 75 5C 44 39 79 60 75 56 4C 39 69 40
+GameLogSource field read=3 size=1 48 8D 48 ?? 4C 8D 44 24 20 48 8D 54 24 30 E8 ?? ?? ?? ?? 48 8B 5C 24 30 49 3B 5B 60 75 05 41 8B DF
+GameLogTag field read=3 size=1 44 39 79 ?? 75 56 4C 39 69 40 75 50 48 8B 51 18 0F 57 C9 48 85 D2 78 07
+GameLogTag field read=2 size=1 89 43 ?? 48 C7 43 48 FF FF FF FF 66 89 4B 68 48 89 5C 24 30 4C 8D 6B 08
+GameLogTag field read=3 size=1 49 3B 5B ?? 75 05 41 8B DF EB 04 48 83 C3 18 48 8B 57 58 48 85 D2 0F 84 ?? ?? ?? ??
+BgmTableSlotsBegin field read=2 size=4 39 B8 ?? ?? ?? ?? C6 45 0C 01 75 04 C6 45 0C 00 48 8D 54 24 40 48 8B CE
+BgmTableSlotsBegin field read=3 size=4 48 8B 98 ?? ?? ?? ?? 48 8B B0 A0 00 00 00 48 3B DE 0F 84 ?? ?? ?? ?? 66 44 0F 6F 05 ?? ?? AA 00
+ManagerSystemData field read=3 size=4 48 8B 8B ?? ?? ?? ?? 89 41 60 48 8B 83 B8 03 00 00 48 8B D0 48 C1 EA 20
+ManagerSystemData field read=3 size=4 48 89 87 ?? ?? ?? ?? 48 85 C0 74 04 F0 FF 40 08 33 F6 48 89 B7 08 02 00 00
+ManagerSystemData field read=3 size=4 48 8B 83 ?? ?? ?? ?? 89 54 88 64 48 8B 93 08 02 00 00 48 85 D2 74 30 48 8B 92 70 32 00 00
+ManagerSaveData field read=3 size=4 48 8B 88 ?? ?? ?? ?? 4C 8B B1 70 32 00 00 49 8D 34 16 33 C0 48 89 45 D0
+ManagerSaveData field read=3 size=4 48 8B 88 ?? ?? ?? ?? 48 8B 81 A8 00 00 00 48 B9 00 00 00 00 00 00 80 00
+ManagerSaveData field read=3 size=4 48 8B 83 ?? ?? ?? ?? 48 8D 88 48 02 00 00 48 85 C0 49 0F 44 CD EB 09 48 8D 4B 10 FF D2 48 8B C8 48 85 C9 74 1D 48 83 C1 08 4C 8D 45 D0 48 8D 55 E8
+ManagerGroup field read=2 size=4 8B 89 ?? ?? ?? ?? 41 8D 04 88 FF C1 03 C8 41 89 89 80 00 00 00 49 8B 06
+ManagerGroup field read=3 size=4 48 8B 83 ?? ?? ?? ?? 48 8B 8B 00 02 00 00 89 41 60 48 8B 83 B8 03 00 00
+ManagerGroup field read=3 size=4 49 89 81 ?? ?? ?? ?? 49 8D 81 E0 03 00 00 88 08 49 89 81 C0 03 00 00 49 8B C1
+ManagerRotation field read=3 size=4 44 8B 81 ?? ?? ?? ?? 41 FF C0 41 83 F8 04 7E 1B B8 99 99 99 99 41 F7 E8
+ManagerRotation field read=3 size=4 44 8B 83 ?? ?? ?? ?? 41 FF C0 41 83 F8 04 7E 1B B8 99 99 99 99 41 F7 E8
+ManagerRotation field read=3 size=4 44 89 83 ?? ?? ?? ?? 48 8B 83 B8 03 00 00 48 8B 8B 00 02 00 00 89 41 60
+SystemGroup field read=2 size=1 83 78 ?? 01 0F 85 ?? ?? ?? ?? 49 8B 4D 08 E8 ?? ?? ?? ?? 4C 8B F8 48 89 44 24 40
+SystemGroup field read=2 size=1 89 41 ?? 48 8B 83 B8 03 00 00 48 8B D0 48 C1 EA 20 48 63 C8 48 8B 83 00 02 00 00
+SystemGroup field read=3 size=1 4D 3B 43 ?? 48 8B C7 74 04 49 8D 40 18 48 63 0D ?? ?? ?? ?? 48 8B 00 48 8B 54 C8 30
+SystemNewestRotation field read=3 size=1 89 54 88 ?? 48 8B 93 08 02 00 00 48 85 D2 74 30 48 8B 92 70 32 00 00 48 8D 8C 24 A8 00 00 00
+SystemNewestRotation field read=4 size=1 43 8B 74 88 ?? 48 8D 99 30 02 00 00 41 BE 05 00 00 00 45 33 E4 49 BB A3 8B 2E BA E8 A2 8B 2E
+SystemNewestRotation field read=4 size=1 46 8B 4C A9 ?? 8B FB 8D 34 92 48 8B 44 24 58 4C 8B 58 08 48 8B 48 10 49 2B CB
+SystemSaveTime field read=2 size=1 89 48 ?? BA 03 00 00 00 48 8B 8B 08 02 00 00 E8 ?? ?? ?? ?? BA 20 00 00 00
+SystemSaveTime field read=3 size=1 48 8B 40 ?? 48 89 41 70 4C 8B 4C 24 48 4C 8D 85 30 05 00 00 48 8D 15 ?? ?? ?? ??
+SystemSaveTime field read=3 size=1 0F 10 48 ?? 0F 11 49 F0 48 8D 80 80 00 00 00 49 2B D6 75 AF 0F 10 00 0F 11 01 0F 10 48 10 0F 11 49 10 0F 10 40 20 0F 11 41 20 0F 10 48 30 0F 11 49 30 0F 10 40 40 0F 11 41 40 0F 10 48 50 0F 11 49 50 0F 10 40 60 0F 11 41 60 48 8B 40 70 48 89 41 70 4C 8B 4C 24 48 4C 8D 85 30 05 00 00 48 8D 15 ?? ?? ?? ??
+SaveWorkBusy field read=3 size=4 F0 FF 88 ?? ?? ?? ?? 48 8B 1D ?? ?? ?? ?? 44 8B 83 BC 03 00 00 41 FF C0
+SaveWorkBusy field read=2 size=4 FF 87 ?? ?? ?? ?? 4D 8B 12 41 8B 42 68 39 87 D0 02 00 00 0F 8C ?? ?? ?? ??
+SaveWorkBusy field read=2 size=4 39 87 ?? ?? ?? ?? 0F 8C ?? ?? ?? ?? 41 8B DD 45 8B C5 4C 8B 8F C8 02 00 00
+SaveWorkLiveTasks field read=2 size=4 89 81 ?? ?? ?? ?? 49 8D 8F 40 05 00 00 49 8D 97 34 02 00 00 E8 ?? ?? ?? ??
+SaveWorkLiveTasks field read=3 size=4 F0 FF 83 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? C6 80 70 02 00 00 00 48 89 74 24 20
+SaveWorkLiveTasks field read=2 size=4 8B 83 ?? ?? ?? ?? 85 C0 75 19 48 8D 0D ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 48 8B 08 48 8B 01 FF 90 C8 01 00 00 F0 FF 83 88 04 00 00 48 8B 05 ?? ?? ?? ?? C6 80 70 02 00 00 00 48 89 74 24 20 4C 8D 0D ?? ?? ?? ??
+SaveUtilStatus field read=3 size=1 4C 8B 76 ?? 4C 2B 30 49 83 EE 10 49 C1 FE 04 44 89 74 24 58 41 83 E4 FD
+SaveUtilStatus field read=3 size=1 48 83 46 ?? 10 41 8B D6 48 8B CE E8 ?? ?? ?? ?? 49 8B 45 08 4C 8B 78 28
+SaveUtilStatus field read=3 size=1 48 8B 4E ?? 48 89 01 C6 41 08 45 48 83 46 10 10 48 8B 46 18 4C 39 68 18
+SaveUtilOperation field read=3 size=1 F0 FF 47 ?? 49 8D B5 40 03 00 00 48 8D 54 24 30 48 8B CE E8 ?? ?? ?? ??
+SaveUtilOperation field read=3 size=1 48 83 78 ?? 00 7E 0C 48 8B CE E8 ?? ?? ?? ?? 48 8B 4E 10 4D 85 FF 75 06
+SaveUtilOperation field read=3 size=1 48 8B 46 ?? 4C 39 68 18 7E 08 48 8B CE E8 ?? ?? ?? ?? 48 8B 46 20 4C 8B 76 10
+SaveDataPlayerStatus field read=3 size=4 48 8B 95 ?? ?? ?? ?? 48 8D 8F 50 03 00 00 48 8B 01 44 8B 8A 78 03 00 00
+SaveDataPlayerStatus field read=3 size=4 48 8B 9B ?? ?? ?? ?? 48 89 5C 24 58 48 85 DB 74 04 F0 FF 43 08 48 89 5D F0
+SaveDataPlayerStatus field read=3 size=4 48 8B 95 ?? ?? ?? ?? 48 8D 4F 78 48 8B 01 44 8B 8A 78 03 00 00 4C 8B 82 68 03 00 00
+SaveDataFieldBlocker field read=3 size=4 48 83 B8 ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 80 B8 51 12 00 00 00
+SaveDataFieldBlocker field read=3 size=4 48 83 B8 ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 8B 80 A8 00 00 00 48 0F BA E0 09 0F 82 ?? ?? ?? ?? 49 8B 5F 08 48 83 BB B0 01 00 00 00 0F 84 ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B E8 4C 8B B3 A8 01 00 00 49 8B 3E 49 3B FE 74 39 48 8B 77 10 48 8B 1E 48 3B DE 74 25 66 90 48 8B 4B 10 80 B9 D9 00 00 00 00
+SaveDataFieldBlocker field read=3 size=4 48 83 B8 ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 8B 80 A8 00 00 00 48 0F BA E0 09 0F 82 ?? ?? ?? ?? 49 8B 5F 08 48 83 BB B0 01 00 00 00 0F 84 ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B E8 4C 8B B3 A8 01 00 00 49 8B 3E 49 3B FE 74 45 66 66 0F 1F 84 00 00 00 00 00 48 8B 77 10 48 8B 1E 48 3B DE 74 27 0F 1F 40 00
+ManagerMapOwner field read=3 size=4 48 8B 89 ?? ?? ?? ?? 48 85 C9 74 11 48 81 C1 E8 00 00 00 45 0F B6 C2 5B
+ManagerMapOwner field read=3 size=4 48 8B 88 ?? ?? ?? ?? 48 85 C9 74 0F 48 81 C1 E8 00 00 00 45 33 C0 E9 ?? ?? ?? ??
+ManagerMapOwner field read=3 size=4 48 8B 88 ?? ?? ?? ?? 48 85 C9 74 0F 48 81 C1 E8 00 00 00 45 33 C0 E8 ?? ?? ?? ?? 48 FF C7 48 3B FE
+MapOwnerMapInfo field read=3 size=4 49 8B 80 ?? ?? ?? ?? 48 89 44 24 20 4D 8B 80 A8 00 00 00 48 8B CB E8 ?? ?? ?? ??
+MapOwnerMapInfo field read=2 size=4 83 BB ?? ?? ?? ?? 00 7F E7 E9 ?? ?? ?? ?? 48 81 FF FC 03 00 00 75 0E 83 BB B8 00 00 00 00
+MapOwnerMapInfo field read=3 size=4 4D 8B B6 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B 4B 10 48 89 01 0F B6 40 08 0C 40 88 41 08 48 83 43 10 10 48 8B 43 18 48 83 78 18 00 7E 08 48 8B CB E8 ?? ?? ?? ?? 48 8B 43 10 4D 85 F6 75 06 44 88 70 08 EB 07 4C 89 30 C6 40 08 02 48 83 43 10 10 8B D6 48 8B CB E8 ?? ?? ?? ?? 4C 89 7D CF 4C 8D 4D CF 4C 8D 45 D7 48 8D 55 C7 48 8B 0D ?? ?? ?? ?? 48 8B 89 E8 01 00 00
+MapInfoPlayerUnit field read=3 size=1 48 89 7F ?? 48 83 EE 80 F0 FF 47 08 EB 04 48 83 EE 80 48 8B C6 48 8B 08
+MapInfoPlayerUnit field read=17 size=1 48 C7 44 24 30 74 05 00 00 48 89 5C 24 20 48 8D 48 ?? 4C 8D 44 24 30 48 8D 54 24 20
+MapInfoPlayerUnit field read=3 size=1 48 8D 48 ?? 4C 8D 44 24 28 48 8D 54 24 20 E8 ?? ?? ?? ?? 4C 8B 44 24 20 4D 3B 43 60 48 8B C7 74 04 49 8D 40 18 48 63 0D ?? ?? ?? ?? 48 8B 00 48 8B 54 C8 30
+CollisionBodiesBegin field read=3 size=4 48 8B BF ?? ?? ?? ?? 4C 8B 07 4D 8D 88 20 01 00 00 49 8D 90 E8 00 00 00
+CollisionBodiesBegin field read=3 size=4 48 8B 9B ?? ?? ?? ?? 4C 8B 03 4D 8D 88 20 01 00 00 49 8D 90 E8 00 00 00
+CollisionBodiesBegin field read=3 size=4 49 8B 87 ?? ?? ?? ?? 48 8B 08 48 8B 81 F8 03 00 00 48 89 44 24 60 48 8B 18
+CollisionBodiesEnd field read=3 size=4 48 8B 99 ?? ?? ?? ?? 48 8B 88 48 02 00 00 48 8B 09 48 8D 05 ?? ?? ?? ??
+CollisionBodiesEnd field read=3 size=4 4C 8B 83 ?? ?? ?? ?? 48 8B 45 A7 48 8B 50 10 48 8B C8 E8 ?? ?? ?? ?? 84 C0
+CollisionBodiesEnd field read=3 size=4 48 8D 8B ?? ?? ?? ?? 48 8D 95 10 22 00 00 E8 ?? ?? ?? ?? 90 48 8D 8D 10 22 00 00
+BodyContacts field read=3 size=4 48 8B 81 ?? ?? ?? ?? 48 89 44 24 60 48 8B 18 48 3B D8 0F 84 ?? ?? ?? ??
+BodyContacts field read=3 size=4 4C 8B B6 ?? ?? ?? ?? 49 8B 1E BA 01 00 00 00 41 BC FF FF FF FF 45 33 ED
+BodyContacts field read=3 size=4 4C 8B A0 ?? ?? ?? ?? 49 8B 34 24 49 3B F4 0F 84 ?? ?? ?? ?? 45 33 ED 66 0F 1F 84 00 00 00 00 00
+ContactNodeBody field read=3 size=1 4C 8B 76 ?? 4C 2B 30 49 83 EE 10 49 C1 FE 04 44 89 74 24 58 41 83 E4 FD
+ContactNodeBody field read=3 size=1 48 83 46 ?? 10 41 8B D6 48 8B CE E8 ?? ?? ?? ?? 49 8B 45 08 4C 8B 78 28
+ContactNodeBody field read=3 size=1 48 8B 4E ?? 48 89 01 C6 41 08 45 48 83 46 10 10 48 8B 46 18 4C 39 68 18
+MapEventData field read=3 size=4 49 8B BD ?? ?? ?? ?? 48 8B BF 48 02 00 00 4C 8B 07 4D 8D 88 20 01 00 00
+MapEventData field read=3 size=4 48 8B 9E ?? ?? ?? ?? 48 8B 9B 48 02 00 00 4C 8B 03 4D 8D 88 20 01 00 00
+MapEventData field read=3 size=4 48 8B 99 ?? ?? ?? ?? 48 8B 9B 48 02 00 00 48 8B 35 ?? ?? ?? ?? 48 89 44 24 60
+MapEventDataRecord field read=3 size=4 48 8B BF ?? ?? ?? ?? 4C 8B 07 4D 8D 88 20 01 00 00 49 8D 90 E8 00 00 00
+MapEventDataRecord field read=3 size=4 48 8B 9B ?? ?? ?? ?? 4C 8B 03 4D 8D 88 20 01 00 00 49 8D 90 E8 00 00 00
+MapEventDataRecord field read=3 size=4 49 8B 87 ?? ?? ?? ?? 48 8B 08 48 8B 81 F8 03 00 00 48 89 44 24 60 48 8B 18
+EventRecordRequiredCount field read=3 size=4 48 8B 89 ?? ?? ?? ?? 48 85 C9 74 08 48 8B 09 4C 39 01 74 08 48 8B 00 48 3B C2 75 E0 48 3B C2 74 1B 48 8B 78 10 48 89 7C 24 38 48 85 FF 74 15 F0 FF 47 08
+EventRecordRequiredCount field read=3 size=4 4D 8B 80 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? 48 8B 89 08 02 00 00 E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 6D B7 4C 8B 03 44 88 6C 24 20 4D 8B 88 18 02 00 00
+EventRecordRequiredCount field read=3 size=4 4D 8B 80 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? 48 8B 89 08 02 00 00 E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 74 24 30 4C 8B 07 C6 44 24 20 00 4D 8B 88 18 02 00 00
+EventRecordRequired field read=3 size=4 48 8B 81 ?? ?? ?? ?? 48 85 C0 74 08 48 8B 00 48 8B 08 EB 03 49 8B CD 48 89 8D A8 03 00 00
+EventRecordRequired field read=3 size=4 49 8D 90 ?? ?? ?? ?? 49 8B 80 18 01 00 00 48 89 44 24 20 4D 8B 80 E0 00 00 00 48 8B 0D ?? ?? ?? ?? 48 8B 89 08 02 00 00 E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 6D B7 4C 8B 03 44 88 6C 24 20
+EventRecordRequired field read=3 size=4 49 8D 90 ?? ?? ?? ?? 49 8B 80 18 01 00 00 48 89 44 24 20 4D 8B 80 E0 00 00 00 48 8B 0D ?? ?? ?? ?? 48 8B 89 08 02 00 00 E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 74 24 30 4C 8B 07 C6 44 24 20 00
+EventRecordForbiddenCount field read=3 size=4 48 89 BB ?? ?? ?? ?? 48 89 BB 58 01 00 00 49 8B 06 48 05 08 02 00 00 F0 FF 43 08
+EventRecordForbiddenCount field read=3 size=4 49 8B 80 ?? ?? ?? ?? 48 89 44 24 20 4D 8B 80 E0 00 00 00 48 8B 0D ?? ?? ?? ?? 48 8B 89 08 02 00 00 E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 6D B7
+EventRecordForbiddenCount field read=3 size=4 49 8B 80 ?? ?? ?? ?? 48 89 44 24 20 4D 8B 80 E0 00 00 00 48 8B 0D ?? ?? ?? ?? 48 8B 89 08 02 00 00 E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 74 24 30
+EventRecordForbidden field read=3 size=4 4D 8D 88 ?? ?? ?? ?? 49 8D 90 E8 00 00 00 49 8B 80 18 01 00 00 48 89 44 24 20 4D 8B 80 E0 00 00 00 48 8B 0D ?? ?? ?? ?? 48 8B 89 08 02 00 00 E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 6D B7
+EventRecordForbidden field read=3 size=4 4D 8D 88 ?? ?? ?? ?? 49 8D 90 E8 00 00 00 49 8B 80 18 01 00 00 48 89 44 24 20 4D 8B 80 E0 00 00 00 48 8B 0D ?? ?? ?? ?? 48 8B 89 08 02 00 00 E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 74 24 30
+EventRecordForbidden field read=3 size=4 48 8D 93 ?? ?? ?? ?? 48 8D 4D F0 E8 ?? ?? ?? ?? 90 48 8B 4D 28 48 85 C9 74 11 48 8D 45 F0 48 3B C8 0F 95 C2 48 8B 01 FF 50 20 90 48 8B 4D A8 48 85 C9 74 12 48 8D 44 24 70 48 3B C8 0F 95 C2 48 8B 01 FF 50 20 90 49 8B 06 48 8B 98 08 02 00 00 48 8D 0D ?? ?? ?? ?? 48 89 4C 24 30 48 89 44 24 38
+TaskRefCount field read=3 size=1 49 8D 58 ?? 48 8B 13 8B 4A 30 85 C9 74 15 83 E9 01 74 05 83 F9 01 75 63
+TaskRefCount field read=3 size=1 48 03 51 ?? 48 8B 42 08 49 3B C1 74 2E 49 8B 08 48 8B 12 48 3B 48 10 74 24
+TaskRefCount field read=2 size=1 89 79 ?? 48 8B 03 48 63 48 34 48 89 4C 24 20 48 8B 8E 00 02 00 00 4C 8D 44 24 20
+TaskSaveSetting field read=3 size=4 48 8B 89 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 6D B7
+TaskSaveSetting field read=3 size=4 48 8B 89 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 74 24 30
+TaskSaveSetting field read=3 size=4 4C 8B B0 ?? ?? ?? ?? 48 8B 07 4C 8D B8 90 01 00 00 8B FE 48 63 B0 88 01 00 00
+SettingTitle field read=3 size=1 4C 8B 76 ?? 4C 2B 30 49 83 EE 10 49 C1 FE 04 44 89 74 24 58 41 83 E4 FD
+SettingTitle field read=3 size=1 48 83 46 ?? 10 41 8B D6 48 8B CE E8 ?? ?? ?? ?? 49 8B 45 08 4C 8B 78 28
+SettingTitle field read=3 size=1 48 8B 4E ?? 48 89 01 C6 41 08 45 48 83 46 10 10 48 8B 46 18 4C 39 68 18
+SettingSlot field read=3 size=4 41 89 89 ?? ?? ?? ?? 49 8B 06 48 8B 98 08 02 00 00 48 8D 0D ?? ?? ?? ??
+SettingSlot field read=3 size=4 48 8D 80 ?? ?? ?? ?? 49 2B D6 75 AF 0F 10 00 0F 11 01 0F 10 48 10 0F 11 49 10 0F 10 40 20 0F 11 41 20 0F 10 48 30 0F 11 49 30 0F 10 40 40 0F 11 41 40 0F 10 48 50 0F 11 49 50 0F 10 40 60 0F 11 41 60 48 8B 40 70 48 89 41 70 4C 8B 4C 24 48 4C 8D 85 30 05 00 00 48 8D 15 ?? ?? ?? ?? 48 8B CB
+SettingSlot field read=3 size=4 48 8D 89 ?? ?? ?? ?? 0F 10 48 70 0F 11 49 F0 48 8D 80 80 00 00 00 49 2B D6 75 AF 0F 10 00 0F 11 01 0F 10 48 10 0F 11 49 10 0F 10 40 20 0F 11 41 20 0F 10 48 30 0F 11 49 30 0F 10 40 40 0F 11 41 40 0F 10 48 50 0F 11 49 50 0F 10 40 60 0F 11 41 60 48 8B 40 70 48 89 41 70 4C 8B 4C 24 48 4C 8D 85 30 05 00 00
+AutoSaveTaskSize field read=3 size=4 48 8B B0 ?? ?? ?? ?? 48 8D 05 ?? ?? ?? ?? 48 89 44 24 48 48 89 74 24 50
+AutoSaveTaskSize field read=3 size=4 48 8B B0 ?? ?? ?? ?? 48 8D 05 ?? ?? ?? ?? 48 89 45 C7 48 89 75 CF 44 89 6D D7
+AutoSaveTaskSize field read=1 size=4 B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B D8 48 89 44 24 48 48 85 C0 74 24 33 D2 41 B8 20 02 00 00 48 8B C8
+AutoSaveProcessSettingSize field read=3 size=4 48 89 81 ?? ?? ?? ?? 4D 85 C0 74 22 48 8B 05 ?? ?? ?? ?? 48 8B 88 68 02 00 00
+AutoSaveProcessSettingSize field read=3 size=4 48 8B 81 ?? ?? ?? ?? 4C 0F B3 D0 48 89 81 90 00 00 00 4D 85 C0 74 22 48 8B 05 ?? ?? ?? ??
+AutoSaveProcessSettingSize field read=4 size=4 4D 23 84 C1 ?? ?? ?? ?? 48 63 C2 48 C1 F8 06 49 8D 0C C1 48 8B 81 90 00 00 00 4C 0F B3 D0 48 89 81 90 00 00 00
+AutoDeleteTaskSize field read=3 size=4 48 89 B7 ?? ?? ?? ?? 48 8B 1D ?? ?? ?? ?? 8B 83 88 04 00 00 85 C0 75 19
+AutoDeleteTaskSize field read=3 size=4 4D 8B 88 ?? ?? ?? ?? 4D 8B 80 C8 01 00 00 48 8D 55 B7 48 8B 8E 40 03 00 00
+AutoDeleteTaskSize field read=3 size=4 4D 8B 88 ?? ?? ?? ?? 4D 8B 80 C8 01 00 00 48 8D 54 24 30 48 8B 0E E8 ?? ?? ?? ??
+AutoDeleteSettingSize field read=3 size=4 4C 89 B9 ?? ?? ?? ?? 49 8B 06 48 8B 88 08 02 00 00 48 C7 81 18 01 00 00 00 00 30 00
+AutoDeleteSettingSize field read=3 size=4 0F 10 87 ?? ?? ?? ?? 0F 11 83 10 01 00 00 0F 10 8F 20 01 00 00 0F 11 8B 20 01 00 00 0F 10 87 30 01 00 00 0F 11 83 30 01 00 00 0F 10 8F 40 01 00 00 0F 11 8B 40 01 00 00 48 8B C3 48 8B 5C 24 50
+AutoDeleteSettingSize field read=3 size=4 0F 11 83 ?? ?? ?? ?? 0F 10 8F 20 01 00 00 0F 11 8B 20 01 00 00 0F 10 87 30 01 00 00 0F 11 83 30 01 00 00 0F 10 8F 40 01 00 00 0F 11 8B 40 01 00 00 48 8B C3 48 8B 5C 24 50 48 83 C4 20 5F 5E 5D
+AllocationAlignment field read=2 size=1 89 46 ?? 48 8D 05 ?? ?? ?? ?? 48 89 46 08 48 8D 05 ?? ?? ?? ?? 48 89 06
+AllocationAlignment field read=2 size=1 FF 50 ?? 48 C7 43 38 00 00 00 00 EB 7E 0F 28 C6 F2 0F 5E 05 ?? ?? ?? ??
+AllocationAlignment field read=3 size=1 41 89 5F ?? 48 8D 05 ?? ?? ?? ?? 49 89 47 08 48 8D 05 ?? ?? ?? ?? 49 89 07
+LayerKeySize field read=2 size=1 8B 41 ?? E9 ?? ?? ?? ?? 48 85 F6 0F 84 ?? ?? ?? ?? 49 81 FD E8 03 00 00
+LayerKeySize field read=1 size=4 B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 89 58 10 48 85 DB 74 05 F0 41 FF 45 00
+LayerKeySize field read=3 size=1 48 83 C3 ?? 48 8B 57 58 48 85 D2 0F 84 ?? ?? ?? ?? 83 7F 60 04 0F 85 ?? ?? ?? ??
+SoundManagerPlayers field read=3 size=4 4D 8B 98 ?? ?? ?? ?? 48 8B 5D D0 4C 8B 7D D8 4D 85 DB 74 5F 4C 89 7D E8
+SoundManagerPlayers field read=3 size=4 48 8B 83 ?? ?? ?? ?? 48 8B 88 D8 00 00 00 48 8B 41 30 48 8B 80 68 05 00 00
+SoundManagerPlayers field read=3 size=4 48 89 83 ?? ?? ?? ?? 48 89 83 70 02 00 00 48 89 83 78 02 00 00 48 89 83 80 02 00 00 48 8B C3 48 83 C4 20
+SoundNodePlayer field read=3 size=1 48 89 47 ?? 48 8D 05 ?? ?? ?? ?? 48 89 47 20 48 8D 05 ?? ?? ?? ?? 48 89 87 00 02 00 00 48 89 9F B0 06 00 00 4C 8D BF B8 06 00 00 4C 89 7C 24 30
+SoundNodePlayer field read=3 size=1 48 8D 4B ?? 48 85 C9 74 21 8B 41 08 85 C0 74 1A 8B C7 F0 0F C1 41 08 83 F8 01 75 0E 48 8B 03 BA 01 00 00 00 48 8B CB FF 10 90 48 83 BE D0 01 00 00 00
+SoundNodePlayer field read=3 size=1 48 8D 43 ?? 48 85 C0 74 04 F0 FF 40 08 44 89 71 18 48 FF 47 08 48 8B 45 08 48 89 29 48 89 41 08 48 89 4D 08 48 89 08 BF FF FF FF FF 48 85 DB 74 2A 48 8D 4B 10 48 85 C9 74 21 8B 41 08 85 C0 74 1A 8B C7 F0 0F C1 41 08 83 F8 01 75 0E 48 8B 03 BA 01 00 00 00 48 8B CB FF 10 90 48 83 BE D0 01 00 00 00
+SoundSystemBgmManager field read=3 size=4 48 8B 8B ?? ?? ?? ?? 0F 57 FF 66 0F 2E F7 7A 50 75 4E 0F 28 D4 0F 28 CD
+SoundSystemBgmManager field read=3 size=4 49 8D 96 ?? ?? ?? ?? 48 8D 4C 24 70 E8 ?? ?? ?? ?? 90 48 8B 4D A8 48 85 C9
+SoundSystemBgmManager field read=3 size=4 48 83 B9 ?? ?? ?? ?? 00 0F 84 ?? ?? ?? ?? 48 8B 01 FF 90 D0 00 00 00 0F 28 E0
+BgmManagerPlayers field read=3 size=4 48 8B 8B ?? ?? ?? ?? 0F 57 FF 66 0F 2E F7 7A 50 75 4E 0F 28 D4 0F 28 CD
+BgmManagerPlayers field read=3 size=4 49 8D 96 ?? ?? ?? ?? 48 8D 4C 24 70 E8 ?? ?? ?? ?? 90 48 8B 4D A8 48 85 C9
+BgmManagerPlayers field read=3 size=4 48 83 B9 ?? ?? ?? ?? 00 0F 84 ?? ?? ?? ?? 48 8B 01 FF 90 D0 00 00 00 0F 28 E0
+CStringSize field read=3 size=1 48 83 EC ?? 80 B9 AC 01 00 00 00 74 23 80 B9 D9 00 00 00 00 74 1A 0F 57 C0
+CStringSize field read=3 size=1 49 8D 4F ?? 48 8B 51 08 48 3B 51 10 74 12 4C 89 32 4D 85 F6 74 03 F0 FF 00 48 83 41 08 08 EB 0A 4C 8D 44 24 20 E8 ?? ?? ?? ?? 41 B0 05 8B D3 49 8B CE E8 ?? ?? ?? ?? 4C 8B C3 48 63 7C 24 70 48 63 4C 24 74 48 03 CE 48 8D 14 B9 49 8B 4E 10 E8 ?? ?? ?? ?? 49 8B 4F 60 48 8B 01 48 3B C1 74 0E
+CStringSize field read=4 size=1 49 83 47 18 ?? EB 1A 4C 8D 44 24 30 48 8B D1 49 8D 4F 10 E8 ?? ?? ?? ?? 8B 44 24 50 48 8B 5C 24 38 48 8D 0D ?? ?? ?? ?? 48 89 4C 24 30 B9 01 00 00 00 3B C1 75 5A 48 85 DB 74 55 48 39 1D ?? ?? ?? ?? 77 1A 48 39 1D ?? ?? ?? ?? 76 11 48 8B D3 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? EB 2D F3 0F 6F 43 F0 66 0F 38 17 05 ?? ?? FF 00 41 8B C6 0F 42 C1 85 C0 74 15 FF 15 ?? ?? ?? ?? 48 8B C8 4C 8D 43 80
+CStringLength field read=3 size=1 48 8D 47 ?? 48 85 C0 74 04 F0 FF 47 18 49 8D B5 40 03 00 00 48 8D 54 24 30
+CStringLength field read=3 size=1 48 8D 4B ?? 48 85 C9 74 21 8B 41 08 85 C0 74 1A 8B C7 F0 0F C1 41 08 83 F8 01 75 0E 48 8B 03 BA 01 00 00 00 48 8B CB FF 10 90 48 83 BE D0 01 00 00 00
+CStringLength field read=3 size=1 48 8D 43 ?? 48 85 C0 74 04 F0 FF 40 08 44 89 71 18 48 FF 47 08 48 8B 45 08 48 89 29 48 89 41 08 48 89 4D 08 48 89 08 BF FF FF FF FF 48 85 DB 74 2A 48 8D 4B 10 48 85 C9 74 21 8B 41 08 85 C0 74 1A 8B C7 F0 0F C1 41 08 83 F8 01 75 0E 48 8B 03 BA 01 00 00 00 48 8B CB FF 10 90 48 83 BE D0 01 00 00 00
+CStringMode field read=2 size=1 89 46 ?? 48 8D 05 ?? ?? ?? ?? 48 89 46 08 48 8D 05 ?? ?? ?? ?? 48 89 06
+CStringMode field read=2 size=1 FF 50 ?? 48 C7 43 38 00 00 00 00 EB 7E 0F 28 C6 F2 0F 5E 05 ?? ?? ?? ??
+CStringMode field read=3 size=1 41 89 5F ?? 48 8D 05 ?? ?? ?? ?? 49 89 47 08 48 8D 05 ?? ?? ?? ?? 49 89 07
+LoadMenuGroup field read=3 size=4 48 89 B7 ?? ?? ?? ?? 48 8B 1D ?? ?? ?? ?? 8B 83 88 04 00 00 85 C0 75 19
+LoadMenuGroup field read=3 size=4 4D 8B 88 ?? ?? ?? ?? 4D 8B 80 C8 01 00 00 48 8D 55 B7 48 8B 8E 40 03 00 00
+LoadMenuGroup field read=3 size=4 4D 8B 88 ?? ?? ?? ?? 4D 8B 80 C8 01 00 00 48 8D 54 24 30 48 8B 0E E8 ?? ?? ?? ??
+LoadMenuRows field read=3 size=4 41 80 BF ?? ?? ?? ?? 00 74 1E 41 C6 87 28 02 00 00 00 41 8B 87 88 02 00 00
+LoadMenuRows field read=3 size=4 48 8B 98 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? BA 15 00 00 00 48 8D 4D A0 E8 ?? ?? ?? ??
+LoadMenuRows field read=3 size=4 41 C6 87 ?? ?? ?? ?? 00 41 8B 87 88 02 00 00 48 8B 4C 24 58 89 41 04 B0 01
+LoadMenuRowSize field read=3 size=1 4C 8B 76 ?? 4C 2B 30 49 83 EE 10 49 C1 FE 04 44 89 74 24 58 41 83 E4 FD
+LoadMenuRowSize field read=3 size=1 48 83 46 ?? 10 41 8B D6 48 8B CE E8 ?? ?? ?? ?? 49 8B 45 08 4C 8B 78 28
+LoadMenuRowSize field read=3 size=1 48 8B 4E ?? 48 89 01 C6 41 08 45 48 83 46 10 10 48 8B 46 18 4C 39 68 18
+ListComponent field read=2 size=1 FF 50 ?? 4C 89 75 A8 49 8B 87 48 02 00 00 48 8B 08 48 8B 81 F8 03 00 00
+ListComponent field read=3 size=1 48 8B 46 ?? 4C 8B 76 10 4C 2B 30 49 83 EE 10 49 C1 FE 04 44 89 74 24 58
+ListComponent field read=3 size=1 48 8B 46 ?? 4C 8B 76 10 4C 2B 30 49 83 EE 10 49 C1 FE 04 44 89 75 D7 48 8D 15 ?? ?? ?? ??
+CardRows field read=3 size=4 48 89 8E ?? ?? ?? ?? 41 F6 C6 02 74 04 41 83 E6 FD 41 F6 C6 01 74 04 41 83 E6 FE
+CardRows field read=4 size=4 45 89 84 C7 ?? ?? ?? ?? 41 89 9C C7 5C 02 00 00 48 8B 44 24 48 48 03 C0
+CardRows field read=4 size=4 45 89 84 C7 ?? ?? ?? ?? 41 89 9C C7 5C 02 00 00 48 8B 44 24 30 48 03 C0
+CardRowSize field read=3 size=1 4C 8B 76 ?? 4C 2B 30 49 83 EE 10 49 C1 FE 04 44 89 74 24 58 41 83 E4 FD
+CardRowSize field read=3 size=1 48 83 46 ?? 10 41 8B D6 48 8B CE E8 ?? ?? ?? ?? 49 8B 45 08 4C 8B 78 28
+CardRowSize field read=3 size=1 48 8B 4E ?? 48 89 01 C6 41 08 45 48 83 46 10 10 48 8B 46 18 4C 39 68 18
+CardFunctorGroup field read=3 size=1 4C 8B 76 ?? 4C 2B 30 49 83 EE 10 49 C1 FE 04 44 89 74 24 58 41 83 E4 FD
+CardFunctorGroup field read=3 size=1 48 83 46 ?? 10 41 8B D6 48 8B CE E8 ?? ?? ?? ?? 49 8B 45 08 4C 8B 78 28
+CardFunctorGroup field read=3 size=1 48 8B 4E ?? 48 89 01 C6 41 08 45 48 83 46 10 10 48 8B 46 18 4C 39 68 18
+CarouselFunctorList field read=3 size=1 4C 8B 76 ?? 4C 2B 30 49 83 EE 10 49 C1 FE 04 44 89 74 24 58 41 83 E4 FD
+CarouselFunctorList field read=3 size=1 48 83 46 ?? 10 41 8B D6 48 8B CE E8 ?? ?? ?? ?? 49 8B 45 08 4C 8B 78 28
+CarouselFunctorList field read=3 size=1 48 8B 4E ?? 48 89 01 C6 41 08 45 48 83 46 10 10 48 8B 46 18 4C 39 68 18
+ListItemsBegin field read=3 size=4 4C 8D B1 ?? ?? ?? ?? 49 8B CE E8 ?? ?? ?? ?? 48 C7 44 24 78 00 00 00 00
+ListItemsBegin field read=3 size=4 4C 8B 81 ?? ?? ?? ?? 48 8B 81 60 09 00 00 49 2B C0 48 C1 F8 03 3B D0 7D 40
+ListItemsBegin field read=3 size=4 48 89 85 ?? ?? ?? ?? 8B 05 ?? ?? ?? ?? 89 85 58 09 00 00 0F B7 05 ?? ?? ?? ??
+ListItemsEnd field read=9 size=4 48 83 C4 30 5B C3 48 8B 83 ?? ?? ?? ?? 48 89 6C 24 40 8B A9 B8 05 00 00
+ListItemsEnd field read=3 size=4 48 8B 81 ?? ?? ?? ?? 49 2B C0 48 C1 F8 03 3B D0 7D 40 49 8B 0C D0 48 85 C9
+ListItemsEnd field read=3 size=4 48 C7 85 ?? ?? ?? ?? F9 03 00 00 48 C7 85 68 09 00 00 FA 03 00 00 4C 89 7C 24 60
+OptionMenuList field read=3 size=4 48 89 BE ?? ?? ?? ?? 48 89 BE 38 02 00 00 48 89 BE 40 02 00 00 48 8B D3
+OptionMenuList field read=2 size=4 80 BE ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 44 88 AE 30 02 00 00 48 8B 8E A8 01 00 00
+OptionMenuList field read=3 size=4 44 88 AE ?? ?? ?? ?? 48 8B 8E A8 01 00 00 80 B9 AC 01 00 00 00 74 1C C6 81 AC 01 00 00 00
+ListAllItemsBegin field read=3 size=4 49 8D 85 ?? ?? ?? ?? 49 83 BD A8 09 00 00 00 75 5D 4C 3B F0 74 16 48 8B 10
+ListAllItemsBegin field read=3 size=4 0F 11 B7 ?? ?? ?? ?? 32 C0 4C 8D 9C 24 D0 00 00 00 49 8B 5B 38 49 8B 73 40
+ListAllItemsBegin field read=3 size=4 48 2B 98 ?? ?? ?? ?? 48 C1 FB 03 BA 06 00 00 00 48 8D 8D C0 9F 00 00 E8 ?? ?? ?? ??
+ListAllItemsEnd field read=3 size=4 48 8B 91 ?? ?? ?? ?? 48 2B 91 40 09 00 00 48 C1 FA 03 2B 91 38 09 00 00
+ListAllItemsEnd field read=3 size=4 48 8B 98 ?? ?? ?? ?? 48 2B 98 40 09 00 00 48 C1 FB 03 BA 06 00 00 00 48 8D 8D C0 9F 00 00
+ListAllItemsEnd field read=2 size=4 C7 85 ?? ?? ?? ?? 00 00 80 3F 0F 28 C7 0F 14 C7 0F 57 D2 F2 0F 10 D0 F3 0F 10 85 48 09 00 00
+ListItemInfoControl field read=3 size=1 48 3B 48 ?? 74 24 0F 1F 44 00 00 48 3B C2 74 18 48 8B 40 08 48 3B 48 10
+ListItemInfoControl field read=3 size=1 49 8D 43 ?? 49 89 43 90 49 8D 43 D0 49 89 43 98 49 8D 43 D8 49 89 43 A0
+ListItemInfoControl field read=3 size=1 48 3B 48 ?? 75 F1 48 85 C0 49 0F 44 C1 49 89 02 49 8B C2 C3 33 C0 48 85 C0
+ListItemKey field read=3 size=1 48 3B 48 ?? 74 24 0F 1F 44 00 00 48 3B C2 74 18 48 8B 40 08 48 3B 48 10
+ListItemKey field read=3 size=1 49 8D 43 ?? 49 89 43 90 49 8D 43 D0 49 89 43 98 49 8D 43 D8 49 89 43 A0
+ListItemKey field read=3 size=1 48 3B 48 ?? 75 F1 48 85 C0 49 0F 44 C1 49 89 02 49 8B C2 C3 33 C0 48 85 C0
+PadQuerySize field read=3 size=1 49 3B 43 ?? 75 04 8B C6 EB 04 48 83 C0 18 48 8B 18 8B 53 30 85 D2 74 4F
+PadQuerySize field read=3 size=1 4D 3B 43 ?? 74 04 49 8D 58 18 48 8B 13 8B 4A 30 85 C9 74 15 83 E9 01 74 05
+PadQuerySize field read=3 size=1 0F 11 41 ?? 48 8D 89 80 00 00 00 0F 10 48 70 0F 11 49 F0 48 8D 80 80 00 00 00 48 83 ED 01 75 AE 0F 10 00 0F 11 01 0F 10 48 10 0F 11 49 10 0F 10 40 20 0F 11 41 20 0F 10 48 30 0F 11 49 30 0F 10 40 40 0F 11 41 40 0F 10 48 50 0F 11 49 50 0F 10 40 60 0F 11 41 60 48 8B 40 70 48 89 41 70 48 8D 44 24 50 48 89 44 24 20 41 B9 14 00 00 00 4C 8D 84 24 F0 03 00 00 48 8D 15 ?? ?? ?? ?? 48 8B CB
+PadQueryRemap field read=3 size=1 49 8D 4B ?? E8 ?? ?? ?? ?? 4C 8B 44 24 20 4D 3B 43 28 EB 37 48 63 43 34
+PadQueryRemap field read=2 size=1 FF 50 ?? 90 48 8B 44 24 70 48 8B 8C 24 80 00 00 00 48 33 CC E8 ?? ?? ?? ??
+PadQueryRemap field read=2 size=1 FF 50 ?? 90 B9 20 02 00 00 E8 ?? ?? ?? ?? 4C 8B F0 48 89 44 24 30 48 85 C0
+PadQueryDeviceMask field read=4 size=1 F3 0F 58 47 ?? F3 0F 11 47 24 48 8B C7 48 8B 8C 24 10 03 00 00 48 33 CC
+PadQueryDeviceMask field read=3 size=1 4C 89 60 ?? 4C 89 60 2C 4C 89 60 34 4C 89 60 3C 44 89 60 44 EB 05 48 85 DB
+PadQueryDeviceMask field read=2 size=1 C7 41 ?? 00 00 20 41 4C 89 71 28 4C 89 71 30 4C 89 71 38 48 83 C1 40 89 44 24 20
+PadQueryWaitFlag field read=3 size=1 48 8B 43 ?? 48 89 45 90 48 8B 8B D8 01 00 00 48 85 C9 74 07 E8 ?? ?? ?? ??
+PadQueryWaitFlag field read=3 size=1 48 8B 53 ?? 48 8B 35 ?? ?? ?? ?? 48 8B CE E8 ?? ?? ?? ?? 48 8B F8 48 85 C0
+PadQueryWaitFlag field read=3 size=1 4D 3B 43 ?? EB 37 48 63 43 34 4C 8D 44 24 28 4C 8B 9F 08 02 00 00 48 8D 54 24 20
+PadQueryText field read=3 size=1 48 23 51 ?? 48 C1 E2 04 48 03 51 18 48 8B 42 08 49 3B C1 74 2E 49 8B 08
+PadQueryText field read=2 size=1 8B 53 ?? 85 D2 74 4F 83 EA 01 74 17 83 FA 01 74 12 8B C6 48 8B 5C 24 50
+PadQueryText field read=2 size=1 8B 4A ?? 85 C9 74 15 83 E9 01 74 05 83 F9 01 75 63 48 63 42 34 48 89 44 24 20
+PadActionDown field read=3 size=4 44 38 A0 ?? ?? ?? ?? 74 22 44 38 64 24 78 74 06 FF 80 BC 00 00 00 83 B8 BC 00 00 00 01 7E 07 80 7C 24 7A 00 74 05 40 B7 01 EB 03 40 32 FF 41 BD 01 00 00 00
+PadActionDown field read=3 size=4 48 8D 89 ?? ?? ?? ?? 0F 10 48 70 0F 11 49 F0 48 8D 80 80 00 00 00 48 83 ED 01 75 AE 0F 10 00 0F 11 01 0F 10 48 10 0F 11 49 10 0F 10 40 20 0F 11 41 20 0F 10 48 30 0F 11 49 30 0F 10 40 40 0F 11 41 40 0F 10 48 50 0F 11 49 50 0F 10 40 60 0F 11 41 60 48 8B 40 70 48 89 41 70 48 8D 44 24 50 48 89 44 24 20 41 B9 14 00 00 00 4C 8D 84 24 F0 03 00 00 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ??
+PadActionDown field read=3 size=4 48 8D 80 ?? ?? ?? ?? 48 83 ED 01 75 AE 0F 10 00 0F 11 01 0F 10 48 10 0F 11 49 10 0F 10 40 20 0F 11 41 20 0F 10 48 30 0F 11 49 30 0F 10 40 40 0F 11 41 40 0F 10 48 50 0F 11 49 50 0F 10 40 60 0F 11 41 60 48 8B 40 70 48 89 41 70 48 8D 44 24 50 48 89 44 24 20 41 B9 14 00 00 00 4C 8D 84 24 F0 03 00 00 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B F8 48 85 FF 74 04 F0 FF 47 08 4C 89 BE 40 02 00 00
+PadActionDownChecks field read=2 size=4 FF 80 ?? ?? ?? ?? 83 B8 BC 00 00 00 01 7E 06 80 7D 11 00 74 0E 83 BF 70 02 00 00 02
+PadActionDownChecks field read=2 size=4 83 B8 ?? ?? ?? ?? 01 7E 07 80 7C 24 7A 00 74 05 40 B7 01 EB 03 40 32 FF 41 BD 01 00 00 00 44 39 6D A0
+PadActionDownChecks field read=2 size=4 FF 80 ?? ?? ?? ?? 83 B8 BC 00 00 00 01 7E 07 80 7C 24 7A 00 74 05 40 B7 01 EB 03 40 32 FF 41 BD 01 00 00 00
+WalkGait field read=3 size=4 41 39 9E ?? ?? ?? ?? 0F 85 ?? ?? ?? ?? 41 C7 86 70 02 00 00 02 00 00 00
+WalkGait field read=3 size=4 41 8B 86 ?? ?? ?? ?? 83 F8 03 75 09 41 89 9E 70 02 00 00 EB 10 83 F8 04
+WalkGait field read=3 size=4 48 3B 87 ?? ?? ?? ?? 74 19 48 8D 55 90 48 8B C8 E8 ?? ?? ?? ?? 48 81 87 68 02 00 00 C0 00 00 00
+WalkAnimationSpeed field read=5 size=4 F3 41 0F 10 86 ?? ?? ?? ?? 0F C6 C0 00 0F 59 C8 0F 29 4D 90 41 0F 2E D2
+WalkAnimationSpeed field read=3 size=4 4C 8D 92 ?? ?? ?? ?? 4C 03 D0 4C 8D 8A 80 02 00 00 4D 3B CA 74 14 8B 41 24
+WalkAnimationSpeed field read=3 size=4 41 C7 86 ?? ?? ?? ?? 00 00 80 3F 45 33 C0 BA EA 00 00 00 49 8B 89 08 02 00 00
+UnitAnimationComponent field read=4 size=4 49 8B 8C 24 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 08 41 8B 86 80 02 00 00 89 41 74
+UnitAnimationComponent field read=4 size=4 49 8B 8C 24 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 08 F3 0F 10 41 74 0F 2F 05 ?? ?? ?? ??
+AnimationPlayerSpeed field read=2 size=1 89 41 ?? 32 DB 48 8B 05 ?? ?? ?? ?? 4C 8B 80 50 02 00 00 48 8B 88 48 02 00 00
+AnimationPlayerSpeed field read=4 size=1 F3 0F 10 41 ?? 0F 2F 05 ?? ?? ?? ?? 72 1A 49 8B 8C 24 00 04 00 00 E8 ?? ?? ?? ??
+EventStatus field read=3 size=4 49 8B 9D ?? ?? ?? ?? 48 8B 9B E0 00 00 00 48 8B 35 ?? ?? ?? ?? 48 89 4C 24 60
+EventStatus field read=3 size=4 48 8B 81 ?? ?? ?? ?? 33 ED 48 85 C0 74 10 48 39 88 F0 00 00 00 75 07 48 89 A8 F0 00 00 00
+EventStatus field read=3 size=4 48 8B 8B ?? ?? ?? ?? 48 85 C9 74 18 8B 41 08 85 C0 74 11 F0 0F C1 79 08 83 FF 01 75 07 48 8B 01 8B D7 FF 10 48 8D 8B 48 02 00 00 E8 ?? ?? ?? ??
+EventStatusData field read=3 size=4 48 8B 9B ?? ?? ?? ?? 48 8B 35 ?? ?? ?? ?? 48 89 4C 24 60 48 8B 03 4C 8B B8 88 04 00 00
+EventStatusData field read=3 size=4 48 8B 88 ?? ?? ?? ?? 48 8B 01 83 B8 F8 00 00 00 00 74 7A 49 8B 3C 24 48 8D 05 ?? ?? ?? ??
+EventStatusData field read=3 size=4 4D 8B 80 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? 48 8B 89 08 02 00 00 E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 74 24 30 4C 8B 07 C6 44 24 20 00 4D 8B 88 18 02 00 00
+TimeFastForwardFrames field read=3 size=4 48 8B 93 ?? ?? ?? ?? 48 8B 89 E8 00 00 00 E8 ?? ?? ?? ?? 90 48 8D 4B 10
+TimeFastForwardFrames field read=3 size=4 4C 89 AF ?? ?? ?? ?? 4C 89 AF 28 02 00 00 4C 89 AF 30 02 00 00 4C 89 AF 38 02 00 00
+TimeFastForwardFrames field read=3 size=4 48 8B BE ?? ?? ?? ?? 48 8D 05 ?? ?? ?? ?? 48 89 44 24 48 48 89 7C 24 50 C7 44 24 58 00 00 00 00
+CommandQueriesEnd field read=2 size=4 C6 80 ?? ?? ?? ?? 01 C6 80 40 03 00 00 01 C6 80 18 04 00 00 01 C6 80 F0 04 00 00 01
+CommandQueriesEnd field read=3 size=4 48 8D 97 ?? ?? ?? ?? 48 8D 4D B0 E8 ?? ?? ?? ?? 90 48 8B 4D E8 48 85 C9 74 11 48 8D 45 B0 48 3B C8 0F 95 C2 48 8B 01 FF 50 20 90 48 8B 4D A8 48 85 C9
+CommandQueriesEnd field read=3 size=4 4C 89 AB ?? ?? ?? ?? 4C 89 AB 70 02 00 00 4C 89 AB 78 02 00 00 4C 89 AB 80 02 00 00 4C 89 AB 88 02 00 00 44 89 AB 90 02 00 00 66 44 89 AB 94 02 00 00
+CommandQueryRecord field read=3 size=1 48 3B 48 ?? 74 24 0F 1F 44 00 00 48 3B C2 74 18 48 8B 40 08 48 3B 48 10
+CommandQueryRecord field read=3 size=1 48 3B 48 ?? 75 F1 48 85 C0 49 0F 44 C1 49 89 02 49 8B C2 C3 33 C0 48 85 C0
+CommandQueryRecord field read=3 size=1 48 89 41 ?? 48 8D 05 ?? ?? ?? ?? 48 89 41 20 48 8D 05 ?? ?? ?? ?? 48 89 81 48 02 00 00 48 8B 81 18 03 00 00
+CommandRecordKind field read=3 size=1 48 89 79 ?? 48 89 B9 80 00 00 00 48 89 B9 88 00 00 00 48 89 B9 90 00 00 00
+CommandRecordKind field read=3 size=1 48 8B 49 ?? E8 ?? ?? ?? ?? 8B F0 49 8B 8C 24 90 02 00 00 48 8B 11 48 8B 5A 78
+CommandRecordKind field read=3 size=1 48 8B 49 ?? E8 ?? ?? ?? ?? 44 8B F0 49 8B 8C 24 90 02 00 00 48 8B 11 48 8B 5A 78
+PadDatabaseTable field read=3 size=1 48 8D 48 ?? 48 89 54 24 28 48 8D 54 24 20 E8 ?? ?? ?? ?? 48 8B 7C 24 20
+PadDatabaseTable field read=3 size=1 49 8D 4D ?? 4C 8D 44 24 58 48 8D 54 24 20 E8 ?? ?? ?? ?? 4C 8B 44 24 20
+PadDatabaseTable field read=3 size=1 41 83 78 ?? 04 0F 85 ?? ?? ?? ?? 33 ED 48 8D 54 24 20 48 81 C1 C0 01 00 00
+PadDatabaseTableEnd field read=3 size=1 49 3B 5B ?? 75 05 48 8B DD EB 04 48 83 C3 18 48 8B 03 83 78 58 04 75 13
+PadDatabaseTableEnd field read=8 size=1 4C 8B 44 24 20 4D 3B 43 ?? 74 04 49 8D 58 18 48 85 DB 0F 95 C0 48 83 C4 30
+PadDatabaseTableEnd field read=3 size=1 49 3B 7B ?? 74 72 48 83 C7 18 74 6C 48 8B 07 48 39 68 08 74 63 48 8B 0D ?? ?? ?? ??
+CameraControlEnabled field read=3 size=4 48 8B 88 ?? ?? ?? ?? 48 8B 89 F8 A9 03 00 C7 81 70 02 00 00 03 00 00 00
+CameraControlEnabled field read=2 size=4 80 B9 ?? ?? ?? ?? 00 48 8B F2 48 8B D9 75 0C C6 81 13 03 00 00 01 E9 ?? ?? ?? ??
+CameraControlEnabled field read=3 size=4 48 8B 88 ?? ?? ?? ?? 0F 57 C0 C7 44 24 40 1B 00 00 00 0F 11 4C 24 48 48 8B 91 F8 A9 03 00
+CameraZoomLevel field read=3 size=4 44 8B 87 ?? ?? ?? ?? 41 FF C0 B8 56 55 55 55 41 F7 E8 8B C2 C1 E8 1F 03 D0
+CameraZoomLevel field read=2 size=4 89 91 ?? ?? ?? ?? 48 8B 81 20 03 00 00 0F 11 44 24 20 48 39 81 18 03 00 00
+CameraZoomLevel field read=2 size=4 83 BF ?? ?? ?? ?? 02 77 05 40 B6 01 EB 03 40 32 F6 83 7D 37 01 75 51 48 8B 5D 1F
+CameraRequestsBegin field read=3 size=4 48 39 81 ?? ?? ?? ?? 75 1C 48 63 C2 4C 8D 44 24 20 48 81 C1 78 02 00 00
+CameraRequestsBegin field read=3 size=4 48 39 81 ?? ?? ?? ?? 75 1A 48 81 C1 78 02 00 00 4C 8D 4C 24 30 4C 8D 44 24 2C
+CameraRequestsBegin field read=3 size=4 48 39 87 ?? ?? ?? ?? 75 1F 48 8D 8F 78 02 00 00 49 63 C0 4C 8D 45 47 4D 8D 04 80
+CameraRequestsEnd field read=3 size=4 48 8B 81 ?? ?? ?? ?? 0F 11 44 24 20 48 39 81 18 03 00 00 75 1C 48 63 C2
+CameraRequestsEnd field read=3 size=4 48 8B 87 ?? ?? ?? ?? 48 39 87 18 03 00 00 75 1F 48 8D 8F 78 02 00 00 49 63 C0
+CameraRequestsEnd field read=3 size=4 48 8B 81 ?? ?? ?? ?? 48 39 81 18 03 00 00 75 1A 48 81 C1 78 02 00 00 4C 8D 4C 24 30
+MapSize field read=3 size=1 48 3B 48 ?? 74 24 0F 1F 44 00 00 48 3B C2 74 18 48 8B 40 08 48 3B 48 10
+MapSize field read=3 size=1 48 3B 48 ?? 75 F1 48 85 C0 49 0F 44 C1 49 89 02 49 8B C2 C3 33 C0 48 85 C0
+MapSize field read=3 size=1 49 8B 4E ?? E8 ?? ?? ?? ?? 49 8B 4F 60 48 8B 01 48 3B C1 74 10 0F 1F 40 00 48 89 78 18 48 8B 00 48 3B C1 75 F4 49 8B 87 98 00 00 00 49 3B 87 A0 00 00 00 74 07 49 89 87 A0 00 00 00 4D 8B 57 40 4D 8B 5F 48 49 8B CB 49 2B CA 48 BB 33 74 C0 6E 8F B5 0C 1D 48 8B C3 48 F7 E9 4C 8B CA 49 C1 F9 07
+LoadOwnerSystemData field read=3 size=4 4C 89 BD ?? ?? ?? ?? 48 8D 8D A0 01 00 00 E8 ?? ?? ?? ?? 48 8D 8D 60 01 00 00
+LoadOwnerSystemData field read=3 size=4 48 8B 90 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 85 D2 74 04 F0 FF 42 08 48 8B 88 00 02 00 00
+LoadOwnerSystemData field read=3 size=4 48 8B 8D ?? ?? ?? ?? 48 85 C9 74 1A 48 8D 85 E0 01 00 00 48 3B C8 0F 95 C2 48 8B 01 FF 50 20 4C 89 BD 18 02 00 00 48 8D 8D A0 01 00 00 E8 ?? ?? ?? ??
+TableSlotsBegin field read=2 size=4 39 B8 ?? ?? ?? ?? 0F 84 ?? ?? ?? ?? B9 C0 02 00 00 E8 ?? ?? ?? ?? 48 8B F0
+TableSlotsBegin field read=2 size=4 8B 92 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? 49 89 3E 48 85 FF 74 04 F0 FF 47 08
+TableSlotsBegin field read=3 size=4 48 8B B8 ?? ?? ?? ?? 48 89 7C 24 78 48 8B B0 A0 00 00 00 48 89 75 88 49 C7 C6 FF FF FF FF
+TableSlotsEnd field read=2 size=4 83 B8 ?? ?? ?? ?? 00 74 0D 83 B8 B0 00 00 00 00 0F 8E ?? ?? ?? ?? 45 33 E4
+TableSlotsEnd field read=3 size=4 48 8B B0 ?? ?? ?? ?? 48 89 75 88 49 C7 C6 FF FF FF FF 48 3B FE 0F 84 ?? ?? ?? ??
+TableSlotsEnd field read=4 size=4 48 8B 94 C2 ?? ?? ?? ?? 48 8D 8D 40 30 00 00 E8 ?? ?? ?? ?? 90 66 C7 85 B8 1C 00 00 01 00
+SettingRecordType field read=3 size=4 48 89 B9 ?? ?? ?? ?? 48 89 B9 90 00 00 00 48 89 B9 98 00 00 00 48 89 01
+SettingRecordType field read=2 size=4 8B 91 ?? ?? ?? ?? 48 8B 49 78 E8 ?? ?? ?? ?? 8B F0 49 8B 8C 24 90 02 00 00
+SettingRecordType field read=2 size=4 83 B8 ?? ?? ?? ?? 04 0F 85 ?? ?? ?? ?? 66 C7 85 C0 00 00 00 00 00 C6 85 C2 00 00 00 01
+SettingRecordLabels field read=2 size=4 83 B8 ?? ?? ?? ?? 00 74 0D 83 B8 B0 00 00 00 00 0F 8E ?? ?? ?? ?? 45 33 E4
+SettingRecordLabels field read=3 size=4 48 8B B0 ?? ?? ?? ?? 48 89 75 88 49 C7 C6 FF FF FF FF 48 3B FE 0F 84 ?? ?? ?? ??
+SettingRecordLabels field read=4 size=4 48 8B 94 C2 ?? ?? ?? ?? 48 8D 8D 40 30 00 00 E8 ?? ?? ?? ?? 90 66 C7 85 B8 1C 00 00 01 00
+OptionMenuTaskSize field read=2 size=4 89 AF ?? ?? ?? ?? EB 03 49 8B FD 48 89 7C 24 40 48 85 FF 74 0D 48 8D 47 10
+OptionMenuTaskSize field read=3 size=4 0F 11 83 ?? ?? ?? ?? 48 8D B3 58 02 00 00 48 89 75 D8 48 8D 05 ?? ?? ?? ??
+OptionMenuTaskSize field read=3 size=4 4C 8B 86 ?? ?? ?? ?? 48 8B 8E 50 02 00 00 4C 3B C1 74 33 66 90 45 38 B0 80 00 00 00
+OptionMenuClosing field read=2 size=4 80 B9 ?? ?? ?? ?? 00 75 78 C6 81 21 02 00 00 01 48 81 C1 00 02 00 00 48 8B 01
+OptionMenuClosing field read=11 size=4 80 B9 21 02 00 00 00 75 78 C6 81 ?? ?? ?? ?? 01 48 81 C1 00 02 00 00 48 8B 01
+OptionMenuClosing field read=3 size=4 40 88 BE ?? ?? ?? ?? 48 89 BE 28 02 00 00 48 89 BE 30 02 00 00 48 89 BE 38 02 00 00
+TaskPad field read=3 size=4 49 8D 95 ?? ?? ?? ?? 48 8D 8D 08 02 00 00 E8 ?? ?? ?? ?? 48 8B D8 BA 03 00 00 00
+TaskPad field read=3 size=4 48 8B 8E ?? ?? ?? ?? 80 B9 AC 01 00 00 00 74 1C C6 81 AC 01 00 00 00 48 8B 05 ?? ?? ?? ?? 44 88 A8 B8 01 00 00
+TaskPad field read=3 size=4 48 8B 89 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 85 C0 74 2B 44 38 A0 80 00 00 00 74 22 44 38 64 24 78 74 06 FF 80 BC 00 00 00 83 B8 BC 00 00 00 01 7E 07 80 7C 24 7A 00 74 05 40 B7 01 EB 03 40 32 FF 41 BD 01 00 00 00
+SettingTableMap field read=3 size=1 49 8D 4B ?? 4C 8D 85 28 02 00 00 48 8D 55 38 E8 ?? ?? ?? ?? 4C 8B 45 38
+SettingTableMap field read=3 size=1 48 8D 48 ?? E8 ?? ?? ?? ?? 4C 8B 44 24 28 4D 3B 43 60 74 04 49 8D 58 18 48 8B 13 8B 4A 30 85 C9
+SettingTableMap field read=3 size=1 48 8D 48 ?? E8 ?? ?? ?? ?? 48 8B 44 24 20 49 3B 43 60 75 04 8B C6 EB 04 48 83 C0 18 48 8B 18 8B 53 30
+MapNodeKey field read=3 size=1 48 3B 48 ?? 74 24 0F 1F 44 00 00 48 3B C2 74 18 48 8B 40 08 48 3B 48 10
+MapNodeKey field read=3 size=1 48 3B 48 ?? 75 F1 48 85 C0 49 0F 44 C1 49 89 02 49 8B C2 C3 33 C0 48 85 C0
+MapNodeKey field read=3 size=1 49 8B 4E ?? E8 ?? ?? ?? ?? 49 8B 4F 60 48 8B 01 48 3B C1 74 12 33 D2 0F 1F 40 00 48 89 50 18 48 8B 00 48 3B C1 75 F4 49 8B 87 98 00 00 00 49 3B 87 A0 00 00 00 74 07 49 89 87 A0 00 00 00 4D 8B 57 40 49 8B 7F 48 48 8B CF 49 2B CA 49 BB E1 83 0F 3E F8 E0 83 0F 49 8B C3 48 F7 E9 4C 8B CA 49 C1 F9 04
+MapNodeValue field read=3 size=1 48 03 51 ?? 48 8B 42 08 49 3B C1 74 2E 49 8B 08 48 8B 12 48 3B 48 10 74 24
+MapNodeValue field read=3 size=1 48 89 50 ?? 48 8B 00 48 3B C1 75 F4 49 8B 87 98 00 00 00 49 3B 87 A0 00 00 00 74 07 49 89 87 A0 00 00 00 4D 8B 57 40 49 8B 7F 48 48 8B CF 49 2B CA 49 BB E1 83 0F 3E F8 E0 83 0F 49 8B C3 48 F7 E9
+MapNodeValue field read=3 size=1 48 89 78 ?? 48 8B 00 48 3B C1 75 F4 49 8B 87 98 00 00 00 49 3B 87 A0 00 00 00 74 07 49 89 87 A0 00 00 00 4D 8B 57 40 4D 8B 5F 48 49 8B CB 49 2B CA 48 BB 33 74 C0 6E 8F B5 0C 1D 48 8B C3 48 F7 E9 4C 8B CA 49 C1 F9 07 49 8B C1 48 C1 E8 3F 4C 03 C8 49 8D 0C 31 49 3B C9 73 1B 48 69 D9 68 04 00 00
+MapNodeSize field read=3 size=1 49 8D 4B ?? E8 ?? ?? ?? ?? 4C 8B 44 24 20 4D 3B 43 28 EB 37 48 63 43 34
+MapNodeSize field read=3 size=1 48 83 C1 ?? 48 8D 54 24 28 E8 ?? ?? ?? ?? 48 8B 08 89 79 18 48 8B 5C 24 60
+MapNodeSize field read=2 size=1 FF 50 ?? 90 48 8B 44 24 70 48 8B 8C 24 80 00 00 00 48 33 CC E8 ?? ?? ?? ??
+SettingRecordStorage field read=3 size=1 48 23 51 ?? 48 C1 E2 04 48 03 51 18 48 8B 42 08 49 3B C1 74 2E 49 8B 08
+SettingRecordStorage field read=2 size=1 8B 53 ?? 85 D2 74 4F 83 EA 01 74 17 83 FA 01 74 12 8B C6 48 8B 5C 24 50
+SettingRecordStorage field read=2 size=1 8B 4A ?? 85 C9 74 15 83 E9 01 74 05 83 F9 01 75 63 48 63 42 34 48 89 44 24 20
+SettingRecordDefault field read=4 size=4 5F C3 8B 83 ?? ?? ?? ?? 48 8B 5C 24 50 48 8B 74 24 58 48 83 C4 30 5F C3
+SettingRecordDefault field read=2 size=4 89 B7 ?? ?? ?? ?? 66 89 B7 90 00 00 00 40 88 B7 92 00 00 00 48 8B 0D ?? ?? ?? ??
+SettingRecordDefault field read=2 size=4 8B AA ?? ?? ?? ?? 48 8B 52 68 48 8D 4C 24 50 E8 ?? ?? ?? ?? 48 8B F0 48 83 78 18 07
+SettingRecordMin field read=3 size=4 48 39 B8 ?? ?? ?? ?? 0F 84 ?? ?? ?? ?? 39 B8 98 00 00 00 0F 84 ?? ?? ?? ??
+SettingRecordMin field read=3 size=4 44 8B A0 ?? ?? ?? ?? 44 8B B0 94 00 00 00 41 FF C6 49 63 C4 4D 63 EE 49 3B C5
+SettingRecordMin field read=3 size=4 4D 8B 80 ?? ?? ?? ?? 48 8B 15 ?? ?? ?? ?? 48 8B 92 08 02 00 00 48 8B CE E8 ?? ?? ?? ?? 48 8B F8 48 89 7C 24 20 48 85 FF 74 04 F0 FF 47 08 48 8B 13
+SettingRecordMax field read=2 size=4 39 82 ?? ?? ?? ?? 74 10 8B 8A 94 00 00 00 3B CF 0F 4C F9 3B C7 0F 4F F8
+SettingRecordMax field read=3 size=4 44 8B B0 ?? ?? ?? ?? 41 FF C6 49 63 C4 4D 63 EE 49 3B C5 0F 8D ?? ?? ?? ??
+SettingRecordMax field read=3 size=4 44 39 B0 ?? ?? ?? ?? 0F 84 ?? ?? ?? ?? 66 C7 85 20 01 00 00 00 00 C6 85 22 01 00 00 01
+SettingRecordChoiceCount field read=3 size=4 48 6B 81 ?? ?? ?? ?? 78 4C 8D 81 E0 00 00 00 4C 03 C0 48 81 C1 E0 00 00 00
+SettingRecordChoiceCount field read=3 size=4 4C 89 B7 ?? ?? ?? ?? 4C 89 B7 D0 00 00 00 44 89 B7 C8 00 00 00 4C 89 B7 18 01 00 00
+SettingRecordChoiceCount field read=3 size=4 48 89 B3 ?? ?? ?? ?? 45 33 ED 41 BE 01 00 00 00 48 85 F6 74 2E 48 8B 86 48 36 00 00
+SettingRecordChoices field read=3 size=4 4C 8D 81 ?? ?? ?? ?? 4C 03 C0 48 81 C1 E0 00 00 00 4C 63 15 ?? ?? ?? ??
+SettingRecordChoices field read=3 size=4 49 8B 8D ?? ?? ?? ?? 48 23 C8 48 03 C9 49 8B 85 C8 00 00 00 48 8B 7C C8 08
+SettingRecordChoices field read=2 size=4 C7 80 ?? ?? ?? ?? 04 00 00 00 48 8B D0 49 8B CE E8 ?? ?? ?? ?? EB 03 49 8B C7
+SettingChoiceSize field read=7 size=1 48 6B 81 D8 00 00 00 ?? 4C 8D 81 E0 00 00 00 4C 03 C0 48 81 C1 E0 00 00 00
+SettingChoiceSize field read=3 size=1 48 83 C1 ?? 49 3B C8 0F 85 ?? ?? ?? ?? 48 8B 03 48 8B 08 48 83 F9 07 75 05
+SettingChoiceSize field read=3 size=1 48 8B 49 ?? E8 ?? ?? ?? ?? 8B F0 49 8B 8C 24 90 02 00 00 48 8B 11 48 8B 5A 78
+SettingChoiceDescriptions field read=3 size=1 48 8B 78 ?? E8 ?? ?? ?? ?? 8B D0 48 8B CB FF D7 84 C0 74 1E 48 89 5C 24 78
+SettingChoiceDescriptions field read=13 size=1 32 C0 4C 8D 9C 24 F0 01 00 00 49 8B 5B ?? 49 8B 73 40 49 8B 7B 48 49 8B E3
+SettingChoiceDescriptions field read=3 size=1 49 89 46 ?? 48 8B 8D 38 30 00 00 48 85 C9 74 10 48 8B 01 4C 8B 00 49 8B D6
+SettingChoiceValue field read=3 size=1 48 89 41 ?? 48 8D 44 24 50 48 89 44 24 20 41 B9 14 00 00 00 4C 8D 84 24 F0 03 00 00 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B F8 48 85 FF
+SettingChoiceValue field read=3 size=1 48 8B 40 ?? 48 89 41 70 48 8D 44 24 50 48 89 44 24 20 41 B9 14 00 00 00 4C 8D 84 24 F0 03 00 00 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B F8
+SettingChoiceValue field read=3 size=1 0F 10 48 ?? 0F 11 49 F0 48 8D 80 80 00 00 00 48 83 EA 01 75 AE 0F 10 00 0F 11 01 0F 10 48 10 0F 11 49 10 0F 10 40 20 0F 11 41 20 0F 10 48 30 0F 11 49 30 0F 10 40 40 0F 11 41 40 0F 10 48 50 0F 11 49 50 0F 10 40 60 0F 11 41 60 48 8B 40 70 48 89 41 70 88 54 24 28 48 89 74 24 20 41 B9 E4 05 00 00
+SaveDataFlags field read=3 size=4 49 89 83 ?? ?? ?? ?? 44 3B D3 74 20 48 8B 05 ?? ?? ?? ?? 48 8B 88 68 02 00 00
+SaveDataFlags field read=4 size=4 48 8B 84 C1 ?? ?? ?? ?? 4C 0F A3 C8 48 63 C2 41 0F 92 C2 48 C1 F8 06 4C 8D 1C C1
+SaveDataFlags field read=4 size=4 4D 23 84 C1 ?? ?? ?? ?? 48 63 C2 48 C1 F8 06 49 8D 0C C1 48 8B 81 90 00 00 00 4C 0F B3 D0 48 89 81 90 00 00 00
+SaveDataEvents field read=3 size=4 48 8B 90 ?? ?? ?? ?? 48 8B 02 48 3B C2 74 4E 49 B8 50 5F 3C 4D 17 00 00 00
+SaveDataEvents field read=3 size=4 48 8B 90 ?? ?? ?? ?? 48 8B 02 48 3B C2 74 55 49 B8 70 DE A2 4C 17 00 00 00
+SaveDataEvents field read=3 size=4 48 8D 8B ?? ?? ?? ?? 48 89 4C 24 28 45 33 FF 41 8B DF 48 89 5C 24 30 48 8D 44 24 30
+EventNodeStatus field read=3 size=1 4C 8B 76 ?? 4C 2B 30 49 83 EE 10 49 C1 FE 04 44 89 74 24 58 41 83 E4 FD
+EventNodeStatus field read=3 size=1 48 83 46 ?? 10 41 8B D6 48 8B CE E8 ?? ?? ?? ?? 49 8B 45 08 4C 8B 78 28
+EventNodeStatus field read=3 size=1 48 8B 4E ?? 48 89 01 C6 41 08 45 48 83 46 10 10 48 8B 46 18 4C 39 68 18
+UiRootFadeManager field read=3 size=4 48 8B 88 ?? ?? ?? ?? E8 ?? ?? ?? ?? 90 41 BF FF FF FF FF 48 8B 44 24 38
+UiRootFadeManager field read=3 size=4 48 8B 97 ?? ?? ?? ?? 48 8D 4D 78 E8 ?? ?? ?? ?? 90 44 8B B7 00 03 00 00
+UiRootFadeManager field read=3 size=4 48 8B 88 ?? ?? ?? ?? E8 ?? ?? ?? ?? 90 48 8B 44 24 40 48 85 C0 74 30 48 8D 48 10
+SaveListEnd field read=3 size=1 4C 8B 76 ?? 4C 2B 30 49 83 EE 10 49 C1 FE 04 44 89 74 24 58 41 83 E4 FD
+SaveListEnd field read=3 size=1 48 83 46 ?? 10 41 8B D6 48 8B CE E8 ?? ?? ?? ?? 49 8B 45 08 4C 8B 78 28
+SaveListEnd field read=3 size=1 48 8B 4E ?? 48 89 01 C6 41 08 45 48 83 46 10 10 48 8B 46 18 4C 39 68 18
+SaveEntrySize field read=3 size=1 48 6B C0 ?? 42 39 0C 18 74 0B FF C3 8B C3 49 3B C2 72 ED EB 13 83 FB FF
+SaveEntrySize field read=3 size=1 48 6B C8 ?? 42 83 7C 19 04 00 75 5F FF C7 41 FF C9 33 DB 83 FF 05 0F 8C ?? ?? ?? ??
+SaveEntrySize field read=3 size=1 48 8D 48 ?? 4C 8D 44 24 28 48 8D 54 24 20 E8 ?? ?? ?? ?? 4C 8B 44 24 20 4D 3B 43 60 48 8B C7 74 04 49 8D 40 18 48 63 0D ?? ?? ?? ?? 48 8B 00 48 8B 54 C8 30
+SaveEntryInfo field read=19 size=1 4C 8D 9C 24 90 06 00 00 49 8B 5B 30 49 8B 73 38 49 8B 7B ?? 49 8B E3 41 5F
+SaveEntryInfo field read=3 size=1 0F 11 47 ?? 0F 11 47 50 48 89 47 60 B9 28 00 00 00 E8 ?? ?? ?? ?? 48 8B D8 48 89 44 24 60 48 85 C0
+SaveEntryInfo field read=4 size=1 49 8B 54 10 ?? FF 50 30 49 8B BF 48 02 00 00 48 8B 7F 10 48 89 7D 90 48 85 FF
+SaveInfoSize field read=2 size=4 41 B8 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? 48 8B CF E8 ?? ?? ?? ?? 49 8D 55 26
+SaveInfoSize field read=2 size=4 41 B8 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B F8 80 3D ?? ?? ?? ?? 00 74 05 48 85 C0 75 05 48 85 FF 74 2E 33 D2 41 B8 30 04 00 00
+SaveInfoSize field read=2 size=4 41 B8 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B F8 80 3D ?? ?? ?? ?? 00 74 05 48 85 C0 75 05 48 85 FF 74 23 33 D2 41 B8 30 04 00 00
+ScriptManagerRoot field read=3 size=4 48 8B 89 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 65 FF
+ScriptManagerRoot field read=3 size=4 48 8B 89 ?? ?? ?? ?? E8 ?? ?? ?? ?? BE FF FF FF FF 41 BE 01 00 00 00 84 C0
+ScriptManagerRoot field read=3 size=4 48 8B 89 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 89 A5 90 07 00 00
+ScriptRootState field read=3 size=1 48 8B 49 ?? 48 C1 E0 04 48 03 02 48 2B C1 48 C1 F8 04 48 85 C0 7E 17 66 90
+ScriptRootState field read=3 size=1 48 8B 52 ?? 48 83 C2 10 E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B CB
+ScriptRootState field read=3 size=1 48 8B 51 ?? 48 8B CB 48 83 C2 10 E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ??
+ScriptPlayerStopped field read=3 size=4 4C 89 A3 ?? ?? ?? ?? 4C 89 A3 60 02 00 00 4C 89 A3 68 02 00 00 4C 89 A3 70 02 00 00
+ScriptPlayerStopped field read=2 size=4 80 B9 ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 48 8B 02 48 89 81 A8 01 00 00 41 BF FF FF FF FF
+ScriptPlayerStopped field read=2 size=4 80 B8 ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ?? 48 8B 8B 28 02 00 00 48 8B 07 48 89 83 10 02 00 00
+UpdateInfoSize field read=3 size=1 48 83 EC ?? E8 ?? ?? ?? ?? 4C 8B C8 0F B6 40 08 A8 0F 75 17 48 8B 49 18
+UpdateInfoSize field read=3 size=1 48 83 EC ?? 4C 8B 41 10 41 80 78 F8 44 75 1C 48 8B 41 18 48 8B 90 10 01 00 00
+UpdateInfoSize field read=2 size=1 FF 50 ?? 48 8B 9D 80 00 00 00 48 85 DB 74 2E 80 3B 00 74 29 48 8B 87 98 02 00 00
+ScriptContextThread field read=3 size=1 48 8B 49 ?? 48 C1 E0 04 48 03 02 48 2B C1 48 C1 F8 04 48 85 C0 7E 17 66 90
+ScriptContextThread field read=3 size=1 48 8B 52 ?? 48 83 C2 10 E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B CB
+ScriptContextThread field read=3 size=1 48 8B 51 ?? 48 8B CB 48 83 C2 10 E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ??
+ScriptBaseName field read=11 size=1 4C 8D 9C 24 30 11 00 00 49 8B 5B ?? 49 8B 73 40 49 8B 7B 48 49 8B E3 41 5F
+ScriptBaseName field read=11 size=1 4C 8D 9C 24 D0 08 00 00 49 8B 5B ?? 49 8B 73 40 49 8B 7B 48 49 8B E3 41 5F
+ScriptBaseName field read=19 size=1 48 33 CC E8 ?? ?? ?? ?? 4C 8D 9C 24 90 00 00 00 49 8B 5B ?? 49 8B 73 40 49 8B 7B 48 49 8B E3 41 5F
+LuaStateTop field read=3 size=1 48 8B 52 ?? 48 83 C2 10 E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B CB
+LuaStateTop field read=3 size=1 48 8B 51 ?? 48 8B CB 48 83 C2 10 E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B 43 18 4C 8D 05 ?? ?? ?? ?? 48 8B 48 40 48 8B 51 10 48 8B CB 48 83 C2 10 E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ??
+LuaStateTop field read=16 size=1 41 B8 0F 00 00 00 FF 50 08 48 8B 47 20 48 8B 4F ?? 48 2B 08 65 48 8B 04 25 58 00 00 00 48 83 E9 10 48 C1 F9 04 89 4B 18 48 8B 08 4A 63 04 31 85 C0 75 05 48 8B CE EB 09 48 8D 0C C1 48 8B 4C 29 F8 E8 ?? ?? ?? ?? 65 48 8B 04 25 58 00 00 00 48 8B 10 4A 63 04 32 85 C0 75 05 48 8B CE EB 09 48 8D 14 C2
+LuaStateGlobal field read=3 size=1 48 8B 43 ?? 4C 8D 05 ?? ?? ?? ?? 48 8B CB 48 8B 50 40 48 8B 52 10 48 83 C2 10
+LuaStateGlobal field read=3 size=1 48 8B 49 ?? 48 83 C1 50 4C 3B C9 75 0A B8 FF FF FF FF 48 83 C4 28 C3 83 E0 0F
+LuaStateGlobal field read=3 size=1 48 8B 43 ?? 4C 8D 05 ?? ?? ?? ?? 48 8B 48 40 48 8B 51 10 48 8B CB 48 83 C2 10 E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ??
+LuaStateCallInfo field read=3 size=1 48 8B 53 ?? 48 8B 49 10 48 C1 E0 04 48 03 02 48 2B C1 48 C1 F8 04 48 85 C0
+LuaStateCallInfo field read=7 size=1 48 8B 4F 18 49 8B 40 ?? 48 8B 51 40 48 8B 48 10 4C 8B 4A 10 49 8B 41 10 48 89 01 41 0F B6 41 18 88 41 08 41 F6 41 18 40 74 1D 49 8B 50 20 F6 42 09 20 74 13 4D 8B 41 10 41 F6 40 09 18 74 08 48 8B CF E8 ?? ?? ?? ?? 8B C3 48 8B 4C 24 58 48 33 CC E8 ?? ?? ?? ?? 48 8B 5C 24 78 48 83 C4 60 5F
+LuaStateCallInfo field read=12 size=1 41 B8 0F 00 00 00 FF 50 08 48 8B 47 ?? 48 8B 4F 10 48 2B 08 65 48 8B 04 25 58 00 00 00 48 83 E9 10 48 C1 F9 04 89 4B 18 48 8B 08 4A 63 04 31 85 C0 75 05 48 8B CE EB 09 48 8D 0C C1 48 8B 4C 29 F8 E8 ?? ?? ?? ?? 65 48 8B 04 25 58 00 00 00 48 8B 10 4A 63 04 32 85 C0 75 05 48 8B CE EB 09 48 8D 14 C2
+LuaGlobalRegistry field read=3 size=1 48 39 4B ?? 72 1E 48 8B D1 45 33 C9 48 8B CB 41 B8 FF FF FF FF E8 ?? ?? ?? ??
+LuaGlobalRegistry field read=3 size=1 48 8B 50 ?? 48 8B 52 10 48 83 C2 10 E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ??
+LuaGlobalRegistry field read=3 size=1 48 8B 48 ?? 48 8B 51 10 48 8B CB 48 83 C2 10 E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B CB
+LuaTableArray field read=3 size=1 48 8B 49 ?? 48 C1 E0 04 48 03 02 48 2B C1 48 C1 F8 04 48 85 C0 7E 17 66 90
+LuaTableArray field read=3 size=1 48 8B 52 ?? 48 83 C2 10 E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B CB
+LuaTableArray field read=3 size=1 48 8B 51 ?? 48 8B CB 48 83 C2 10 E8 ?? ?? ?? ?? 45 33 C0 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ??
+LuaValueSize field read=3 size=1 48 8B 51 ?? 48 89 13 48 8B 00 48 8B 5C 24 30 48 83 C0 18 48 8B 74 24 38
+LuaValueSize field read=16 size=1 41 B8 09 00 00 00 FF 50 08 48 8B 46 20 48 8B 4E ?? 48 2B 08 65 48 8B 04 25 58 00 00 00 48 83 E9 10 48 C1 F9 04 89 4F 18 48 8B 08 4A 63 04 31 85 C0 74 09 48 8D 0C C1 48 8B 5C 29 F8 48 8B 4B 28
+LuaValueSize field read=16 size=1 41 B8 0F 00 00 00 FF 50 08 48 8B 47 20 48 8B 4F ?? 48 2B 08 65 48 8B 04 25 58 00 00 00 48 83 E9 10 48 C1 F9 04 89 4B 18 48 8B 08 4A 63 04 31 85 C0 75 05 48 8B CE EB 09 48 8D 0C C1 48 8B 4C 29 F8 E8 ?? ?? ?? ?? 65 48 8B 04 25 58 00 00 00 48 8B 10 4A 63 04 32 85 C0 75 05 48 8B CE EB 09 48 8D 14 C2
+DatabaseMap field read=3 size=1 49 8D 4D ?? 4C 8D 44 24 58 48 8D 54 24 20 E8 ?? ?? ?? ?? 4C 8B 44 24 20
+DatabaseMap field read=7 size=1 48 C1 FA 09 49 8D 4F ?? E8 ?? ?? ?? ?? 49 8B 7F 40 4D 8B 67 48 4C 89 64 24 60
+DatabaseMap field read=3 size=1 49 8D 4F ?? E8 ?? ?? ?? ?? 49 8B 7F 40 4D 8B 67 48 4C 89 64 24 38 49 3B FC 0F 84 ?? ?? ?? ?? 4C 8D 35 ?? ?? ?? ?? 66 0F 1F 84 00 00 00 00 00 4C 8B C7
+MapBuckets field read=3 size=1 4C 89 78 ?? 4C 89 78 20 4C 89 78 28 44 89 70 10 48 89 45 C7 48 8D 78 08
+MapBuckets field read=3 size=1 48 8D 58 ?? 75 05 48 8D 5C 24 28 48 8B 1B 48 89 5C 24 30 48 85 DB 74 04
+MapBuckets field read=3 size=1 4D 8B 5B ?? 4C 89 7D C7 49 8D 4B 58 4C 8D 45 B7 48 8D 55 C7 E8 ?? ?? ?? ??
+MapMask field read=3 size=1 0F 11 40 ?? 0F 11 40 40 48 8B C8 E8 ?? ?? ?? ?? EB 03 49 8B C7 48 85 C0
+MapMask field read=2 size=1 83 78 ?? 00 0F 85 ?? ?? ?? ?? 4C 8B 1D ?? ?? ?? ?? 4D 8B 83 00 02 00 00
+MapMask field read=3 size=1 48 8B 49 ?? E8 ?? ?? ?? ?? 48 8B 38 48 89 7C 24 50 48 85 FF 74 04 F0 FF 47 08
+ItemRecordCategory field read=3 size=4 48 83 B9 ?? ?? ?? ?? 05 0F 84 ?? ?? ?? ?? 48 8B 45 E0 83 B8 A0 00 00 00 00
+ItemRecordCategory field read=3 size=4 4D 8B 89 ?? ?? ?? ?? 33 D2 41 B8 01 00 00 00 49 8B 8F F8 34 00 00 E8 ?? ?? ?? ?? 45 8B C6 41 8B D5
+ItemRecordCategory field read=3 size=4 4D 8B 89 ?? ?? ?? ?? 33 D2 41 B8 01 00 00 00 49 8B 8F F8 34 00 00 E8 ?? ?? ?? ?? 45 33 C0 41 8B D6
+ItemRecordIcon field read=3 size=4 48 8B 88 ?? ?? ?? ?? 48 89 4D D8 4C 89 6D D0 49 8D 4B 58 4C 8D 45 D8 48 8D 55 D0
+ItemRecordIcon field read=3 size=4 48 8B B0 ?? ?? ?? ?? 48 89 B5 30 A1 00 00 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ??
+ItemRecordIcon field read=3 size=4 48 8B B0 ?? ?? ?? ?? 48 89 B5 F0 8F 00 00 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ??
+ItemStatusSaveData field read=3 size=4 48 89 B3 ?? ?? ?? ?? 45 33 ED 41 BE 01 00 00 00 48 85 F6 74 2E 48 8B 86 48 36 00 00
+ItemStatusSaveData field read=3 size=4 48 89 B7 ?? ?? ?? ?? 48 8B 97 B8 00 00 00 E8 ?? ?? ?? ?? 48 8B 97 B8 00 00 00 E8 ?? ?? ?? ?? 48 8B 8F 98 00 00 00 48 85 C9 74 28 48 8B 97 A8 00 00 00 48 2B D1 48 83 E2 F8 E8 ?? ?? ?? ?? 48 89 B7 98 00 00 00 48 89 B7 A0 00 00 00 48 89 B7 A8 00 00 00 48 8D 4F 58 E8 ?? ?? ?? ?? 48 8B 4F 40 48 85 C9 74 2C 48 8B 57 48 E8 ?? ?? ?? ?? 48 8B 4F 40 48 8B 57 50 48 2B D1 48 81 E2 00 FE FF FF
+ItemStatusSaveData field read=3 size=4 48 89 B7 ?? ?? ?? ?? 48 8B 97 B8 00 00 00 E8 ?? ?? ?? ?? 48 8B 97 B8 00 00 00 E8 ?? ?? ?? ?? 48 8B 8F 98 00 00 00 48 85 C9 74 28 48 8B 97 A8 00 00 00 48 2B D1 48 83 E2 F8 E8 ?? ?? ?? ?? 48 89 B7 98 00 00 00 48 89 B7 A0 00 00 00 48 89 B7 A8 00 00 00 48 8D 4F 58 E8 ?? ?? ?? ?? 48 8B 4F 40 48 85 C9 74 3B 48 8B 57 50 48 B8 67 66 66 66 66 66 66 66 48 2B D1 48 F7 EA 48 C1 FA 04 48 8B C2
+ItemStatusUid field read=3 size=4 4C 89 AB ?? ?? ?? ?? 4C 89 AB E8 00 00 00 48 8D 05 ?? ?? ?? ?? 48 89 03
+ItemStatusUid field read=3 size=4 48 8B B8 ?? ?? ?? ?? 48 8D B0 48 02 00 00 48 8D 4B 58 4C 8B C6 48 8D 55 D0
+ItemStatusUid field read=3 size=4 48 89 83 ?? ?? ?? ?? 48 8B D3 48 8B CE E8 ?? ?? ?? ?? EB 07 4C 89 AB E0 00 00 00
+ItemStatusData field read=3 size=4 4C 89 AB ?? ?? ?? ?? 0F 57 C0 0F 11 83 48 02 00 00 48 8D B3 58 02 00 00
+ItemStatusData field read=3 size=4 4C 89 93 ?? ?? ?? ?? 4D 8B 12 4D 8B 8A A0 01 00 00 4D 8B C5 4D 85 C9 74 33
+ItemStatusData field read=3 size=4 48 8B 80 ?? ?? ?? ?? 33 F6 48 85 C0 74 08 48 8B 00 48 8B 08 EB 03 48 8B CE E8 ?? ?? ?? ?? 84 C0
+ItemStatusCount field read=2 size=4 8B 92 ?? ?? ?? ?? 49 8B 0F E8 ?? ?? ?? ?? 49 8B 04 24 8B 88 60 02 00 00
+ItemStatusCount field read=2 size=4 8B 88 ?? ?? ?? ?? 48 8B 80 40 02 00 00 48 85 C0 74 08 48 8B 00 4C 8B 08
+ItemStatusCount field read=2 size=4 8B B9 ?? ?? ?? ?? 44 3B C7 41 0F 4C F8 F7 DF 8B D7 E8 ?? ?? ?? ?? 33 D2
+ItemStatusRank field read=3 size=4 41 8B 80 ?? ?? ?? ?? 39 83 80 02 00 00 0F 85 ?? ?? ?? ?? 03 BB 60 02 00 00
+ItemStatusRank field read=2 size=4 39 83 ?? ?? ?? ?? 0F 85 ?? ?? ?? ?? 03 BB 60 02 00 00 48 8B 83 58 02 00 00
+ItemStatusRank field read=3 size=4 4C 89 AB ?? ?? ?? ?? 4C 89 AB 88 02 00 00 44 89 AB 90 02 00 00 66 44 89 AB 94 02 00 00
+SaveDataCapacity field read=15 size=4 74 0A B8 01 00 00 00 E9 ?? ?? ?? ?? 4C 8B 9F ?? ?? ?? ?? 45 33 C0 4D 8B D3
+SaveDataCapacity field read=3 size=4 49 8B 87 ?? ?? ?? ?? 48 0F BA E0 16 0F 83 ?? ?? ?? ?? B8 1E 00 00 00 E9 ?? ?? ?? ??
+SaveDataCapacity field read=3 size=4 48 8B 81 ?? ?? ?? ?? 48 0F BA E0 16 73 07 B8 1E 00 00 00 EB 12 48 0F BA E0 15 B8 0A 00 00 00 B9 14 00 00 00
+SaveDataInventory field read=3 size=4 48 8B 8B ?? ?? ?? ?? 48 89 83 C0 32 00 00 48 85 C9 74 21 8B 41 08 85 C0
+SaveDataInventory field read=3 size=4 48 8B BB ?? ?? ?? ?? 48 8B 87 58 02 00 00 48 8D 8F 58 02 00 00 FF 50 10
+SaveDataInventory field read=3 size=4 49 8B 8E ?? ?? ?? ?? 48 85 C9 0F 84 ?? ?? ?? ?? 8B B9 60 02 00 00 44 3B C7
+SaveDataTools field read=4 size=4 49 8B 8C C6 ?? ?? ?? ?? 4D 89 84 C6 B8 33 00 00 48 85 C9 74 1E 8B 41 08
+SaveDataTools field read=3 size=4 48 8D 8B ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? BA 08 00 00 00 41 B8 0B 00 00 00
+SaveDataTools field read=4 size=4 4D 39 84 C6 ?? ?? ?? ?? 74 3D 4D 85 C0 74 05 F0 41 FF 40 08 49 8B 8C C6 B8 33 00 00
+SaveDataDropList field read=3 size=4 48 8B B1 ?? ?? ?? ?? 48 8B 1E 48 3B DE 74 63 66 0F 1F 44 00 00 48 8B 4B 10
+SaveDataDropList field read=3 size=4 4C 8B A1 ?? ?? ?? ?? 49 8B 3C 24 49 3B FC 0F 84 ?? ?? ?? ?? 41 BD 01 00 00 00
+SaveDataDropList field read=3 size=4 48 8D 8B ?? ?? ?? ?? E8 ?? ?? ?? ?? 90 48 8D 8B B8 33 00 00 4C 8D 0D ?? ?? ?? ??
+SaveDataEncyclopedia field read=3 size=4 48 8D 8B ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 8B 78 36 00 00 48 85 C9 74 28
+SaveDataEncyclopedia field read=3 size=4 4C 8D B8 ?? ?? ?? ?? 48 63 C7 48 8D 0C 80 48 8D 5C CC 08 66 0F 1F 44 00 00
+SaveDataEncyclopedia field read=3 size=4 49 8D 8B ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 08 C6 41 18 01 48 85 FF 0F 84 ?? ?? ?? ??
+SaveDataFavoriteCraft field read=3 size=4 48 8D 8B ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8D 8B E0 36 00 00 E8 ?? ?? ?? ??
+SaveDataFavoriteCraft field read=3 size=4 49 8D 8B ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 1D ?? ?? ?? ?? C7 44 24 38 00 00 80 3F C7 44 24 3C FE FF FF FF 48 C7 44 24 40 00 00 80 3F 89 7C 24 48 0F 57 C9 F2 0F 11 4C 24 50 48 8B 05 ?? ?? ?? ?? 48 8B 88 08 01 00 00 48 85 C9 0F 84 ?? ?? ?? ?? 48 8B 01 48 8D 54 24 70 FF 50 10 E9 ?? ?? ?? ?? 49 83 BB 30 37 00 00 64 73 A2 4C 8D 44 24 58 48 8D 54 24 60 49 8D 8B 20 37 00 00 E8 ?? ?? ?? ??
+SaveDataFavoriteCook field read=3 size=4 48 8D 8B ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8D 8B 20 37 00 00 E8 ?? ?? ?? ??
+SaveDataFavoriteCook field read=3 size=4 49 8D 8B ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 1D ?? ?? ?? ?? C7 44 24 38 00 00 80 3F C7 44 24 3C FE FF FF FF 48 C7 44 24 40 00 00 80 3F 89 7C 24 48 0F 57 C9 F2 0F 11 4C 24 50 48 8B 05 ?? ?? ?? ?? 48 8B 88 08 01 00 00 48 85 C9 0F 84 ?? ?? ?? ?? 48 8B 01 48 8D 54 24 70 FF 50 10 E9 ?? ?? ?? ?? 49 83 BB 70 37 00 00 64 73 A2 4C 8D 44 24 58 48 8D 54 24 60 49 8D 8B 60 37 00 00 E8 ?? ?? ?? ??
+SaveDataUidMap field read=3 size=4 49 8D 8A ?? ?? ?? ?? 4C 89 4C 24 20 4C 8D 44 24 20 48 8D 54 24 28 E8 ?? ?? ?? ??
+SaveDataUidMap field read=3 size=4 49 8D 8B ?? ?? ?? ?? 4C 8D 44 24 28 48 8D 54 24 20 E8 ?? ?? ?? ?? 4C 8B 44 24 20 4D 3B 83 B8 38 00 00 0F 84 ?? ?? ?? ?? 4D 8B 70 18 4D 85 F6 74 72
+SaveDataUidMap field read=3 size=4 48 8D 9F ?? ?? ?? ?? 48 89 5C 24 20 89 33 48 89 73 08 48 89 73 10 B9 20 00 00 00 E8 ?? ?? ?? ?? 48 89 00 48 89 40 08 48 89 43 08 48 8D 4B 18 48 89 31 48 89 71 08 48 89 71 10 48 C7 43 30 07 00 00 00 48 C7 43 38 08 00 00 00 C7 03 00 00 80 3F 4C 8B 43 08 BA 10 00 00 00 E8 ?? ?? ?? ?? 90 48 8B C7
+ListNodeValue field read=3 size=1 48 3B 48 ?? 74 24 0F 1F 44 00 00 48 3B C2 74 18 48 8B 40 08 48 3B 48 10
+ListNodeValue field read=3 size=1 48 3B 48 ?? 75 F1 48 85 C0 49 0F 44 C1 49 89 02 49 8B C2 C3 33 C0 48 85 C0
+ListNodeValue field read=3 size=1 49 8B 4E ?? E8 ?? ?? ?? ?? 49 8B 4F 60 48 8B 01 48 3B C1 74 10 0F 1F 40 00 48 89 78 18 48 8B 00 48 3B C1 75 F4 49 8B 87 98 00 00 00 49 3B 87 A0 00 00 00 74 07 49 89 87 A0 00 00 00 4D 8B 57 40 4D 8B 5F 48 49 8B CB 49 2B CA 48 BB 33 74 C0 6E 8F B5 0C 1D 48 8B C3 48 F7 E9 4C 8B CA 49 C1 F9 07
+DatabaseRecords field read=3 size=4 49 8B 87 ?? ?? ?? ?? 49 3B 87 A0 00 00 00 74 07 49 89 87 A0 00 00 00 4D 8B 57 40 49 8B 7F 48 48 8B CF 49 2B CA 49 BB E1 83 0F 3E F8 E0 83 0F 49 8B C3
+DatabaseRecords field read=3 size=4 49 8B 87 ?? ?? ?? ?? 49 3B 87 A0 00 00 00 74 07 49 89 87 A0 00 00 00 4D 8B 57 40 49 8B 7F 48 48 8B CF 49 2B CA 49 BB 89 88 88 88 88 88 88 88 49 8B C3 48 F7 E9 4C 8D 0C 11 49 C1 F9 07 49 8B C1
+DatabaseRecords field read=3 size=4 49 8B 87 ?? ?? ?? ?? 49 3B 87 A0 00 00 00 74 07 49 89 87 A0 00 00 00 4D 8B 57 40 4D 8B 5F 48 49 8B CB 49 2B CA 48 BB 33 74 C0 6E 8F B5 0C 1D 48 8B C3 48 F7 E9 4C 8B CA 49 C1 F9 07 49 8B C1 48 C1 E8 3F
+StatusSecondVtable field read=3 size=1 48 3B 48 ?? 74 24 0F 1F 44 00 00 48 3B C2 74 18 48 8B 40 08 48 3B 48 10
+StatusSecondVtable field read=3 size=1 48 3B 48 ?? 75 F1 48 85 C0 49 0F 44 C1 49 89 02 49 8B C2 C3 33 C0 48 85 C0
+StatusSecondVtable field read=3 size=1 49 8B 4E ?? E8 ?? ?? ?? ?? 49 8B 4F 60 48 8B 01 48 3B C1 74 10 0F 1F 40 00 48 89 78 18 48 8B 00 48 3B C1 75 F4 49 8B 87 98 00 00 00 49 3B 87 A0 00 00 00 74 07 49 89 87 A0 00 00 00 4D 8B 57 40 4D 8B 5F 48 49 8B CB 49 2B CA 48 BB 33 74 C0 6E 8F B5 0C 1D 48 8B C3 48 F7 E9 4C 8B CA 49 C1 F9 07
+NpcStatusSaveData field read=3 size=4 49 8B 88 ?? ?? ?? ?? 49 8B D4 48 8B 49 30 E8 ?? ?? ?? ?? 4C 8B E0 0F 57 C0
+NpcStatusSaveData field read=3 size=4 48 8B 89 ?? ?? ?? ?? 48 8B D7 48 8B 49 30 E8 ?? ?? ?? ?? 48 8B D8 48 8B 0D ?? ?? ?? ??
+NpcStatusSaveData field read=3 size=4 48 89 BB ?? ?? ?? ?? 48 85 FF 74 33 48 8B 87 48 36 00 00 48 83 C0 01 48 89 87 48 36 00 00
+NpcStatusUid field read=3 size=4 48 C7 83 ?? ?? ?? ?? 00 00 00 00 48 8B 06 48 89 83 E8 00 00 00 48 8B C3
+NpcStatusUid field read=3 size=4 49 8B 8D ?? ?? ?? ?? 48 23 C8 48 03 C9 49 8B 85 C8 00 00 00 48 8B 7C C8 08
+NpcStatusUid field read=3 size=4 48 89 83 ?? ?? ?? ?? 48 8B D3 48 8B CF E8 ?? ?? ?? ?? EB 0B 48 C7 83 E0 00 00 00 00 00 00 00
+NpcStatusUnitHolder field read=3 size=4 48 8B 89 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 3B C7 0F 85 ?? ?? ?? ?? 4C 8B 4B 10
+NpcStatusUnitHolder field read=6 size=4 48 8B 06 48 89 83 ?? ?? ?? ?? 48 8B C3 48 8B 5C 24 38 48 8B 74 24 40 48 83 C4 20
+NpcStatusUnitHolder field read=3 size=4 48 8B 89 ?? ?? ?? ?? E8 ?? ?? ?? ?? 49 3B C6 75 2B 48 8D 53 10 48 8B 0D ?? ?? ?? ??
+NpcStatusPosition field read=3 size=4 0F 10 81 ?? ?? ?? ?? 48 8B F2 0F C2 02 00 0F 50 C0 48 8B F9 83 E0 03 3C 03
+NpcStatusPosition field read=3 size=4 48 8D 91 ?? ?? ?? ?? 48 8B 89 E8 00 00 00 E8 ?? ?? ?? ?? 48 3B C7 0F 85 ?? ?? ?? ??
+NpcStatusPosition field read=3 size=4 48 8D 91 ?? ?? ?? ?? 48 85 C0 74 11 48 8B C8 E8 ?? ?? ?? ?? EB 13 48 8D 91 F0 00 00 00 48 8B 89 E8 00 00 00 E8 ?? ?? ?? ?? 48 3B C7 0F 85 ?? ?? ?? ??
+UnitStatusMembers field read=3 size=4 48 8B 89 ?? ?? ?? ?? 48 85 C9 74 08 48 8B 09 48 8B 11 EB 02 33 D2 48 8B C8
+UnitStatusMembers field read=3 size=4 49 8B 86 ?? ?? ?? ?? 48 85 C0 74 08 48 8B 00 4C 8B 00 EB 03 4D 8B C7 4C 8B 33
+UnitStatusMembers field read=3 size=4 49 8B 82 ?? ?? ?? ?? 48 85 C0 0F 84 ?? ?? ?? ?? 48 8B 00 48 81 38 70 0D AE 06
+UnitStatusMemberData field read=3 size=4 48 8D 8F ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 35 ?? ?? ?? ?? 48 8B 87 90 02 00 00
+UnitStatusMemberData field read=3 size=4 48 8B 88 ?? ?? ?? ?? 48 89 8A 48 02 00 00 49 8B 8C 24 B0 00 00 00 48 81 C1 48 02 00 00
+UnitStatusMemberData field read=3 size=4 48 89 8A ?? ?? ?? ?? 49 8B 8C 24 B0 00 00 00 48 81 C1 48 02 00 00 48 8D 95 B0 10 00 00
+NpcStatusChara field read=3 size=4 48 8B 87 ?? ?? ?? ?? 48 8B 08 48 8B 99 C8 00 00 00 48 8B 0D ?? ?? ?? ??
+NpcStatusChara field read=3 size=4 48 89 BB ?? ?? ?? ?? 0F 57 C0 0F 11 83 A0 02 00 00 4C 8D 83 B0 02 00 00
+NpcStatusChara field read=3 size=4 4C 89 BF ?? ?? ?? ?? 0F 57 C0 0F 11 87 A0 02 00 00 48 8D 9F B0 02 00 00
+NpcStatusLoveValue field read=3 size=4 48 89 BB ?? ?? ?? ?? 48 8D 05 ?? ?? ?? ?? 48 89 83 D0 02 00 00 48 89 BB E0 02 00 00
+NpcStatusLoveValue field read=3 size=4 4C 89 BF ?? ?? ?? ?? 48 8D 05 ?? ?? ?? ?? 48 89 87 D0 02 00 00 4C 89 BF E0 02 00 00
+NpcStatusLoveValue field read=3 size=4 48 89 9F ?? ?? ?? ?? 48 8B 5C 24 50 48 83 C4 30 5F C3 48 8B 5C 24 50 49 83 C0 18 4C 89 87 C8 02 00 00
+NpcStatusInitSlot field read=3 size=1 48 8D 4B ?? E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 81 C3 D0 00 00 00
+NpcStatusInitSlot field read=3 size=1 48 89 41 ?? 0F 11 41 48 4C 89 49 08 4C 89 41 18 4C 89 41 20 4C 89 51 10
+NpcStatusInitSlot field read=3 size=1 49 8D 4F ?? 48 8B 51 08 48 3B 51 10 74 12 4C 89 32 4D 85 F6 74 03 F0 FF 00 48 83 41 08 08 EB 0A 4C 8D 44 24 20 E8 ?? ?? ?? ?? 41 B0 05 8B D3 49 8B CE E8 ?? ?? ?? ?? 4C 8B C3 48 63 7C 24 70 48 63 4C 24 74 48 03 CE 48 8D 14 B9 49 8B 4E 10 E8 ?? ?? ?? ?? 49 8B 4F 60 48 8B 01 48 3B C1 74 0E
+SaveDataNpcList field read=3 size=4 48 89 B7 ?? ?? ?? ?? 48 89 B7 30 34 00 00 B9 18 00 00 00 E8 ?? ?? ?? ??
+SaveDataNpcList field read=3 size=4 4C 8B A8 ?? ?? ?? ?? 49 8B 5D 00 49 3B DD 0F 84 ?? ?? ?? ?? 4C 8B 74 24 78
+SaveDataNpcList field read=3 size=4 4C 8B B0 ?? ?? ?? ?? 49 8B 1E 49 3B DE 0F 84 ?? ?? ?? ?? 0F 1F 40 00 48 8B 43 10
+ListNodeSize field read=3 size=1 48 03 51 ?? 48 8B 42 08 49 3B C1 74 2E 49 8B 08 48 8B 12 48 3B 48 10 74 24
+ListNodeSize field read=3 size=1 48 89 78 ?? 48 8B 00 48 3B C1 75 F4 49 8B 87 98 00 00 00 49 3B 87 A0 00 00 00 74 07 49 89 87 A0 00 00 00 4D 8B 57 40 4D 8B 5F 48 49 8B CB 49 2B CA 48 BB 33 74 C0 6E 8F B5 0C 1D 48 8B C3 48 F7 E9 4C 8B CA 49 C1 F9 07 49 8B C1 48 C1 E8 3F 4C 03 C8 49 8D 0C 31 49 3B C9 73 1B 48 69 D9 68 04 00 00
+ListNodeSize field read=3 size=1 49 8D 50 ?? 41 B8 02 00 00 00 48 8D 4C 24 30 E8 ?? ?? ?? ?? 90 48 8D 54 24 30 48 8B CE E8 ?? ?? ?? ?? 0F 10 30 48 8B 4C 24 60 48 85 C9 74 23 48 8B 54 24 70 48 2B D1 48 83 E2 F8 E8 ?? ?? ?? ?? 0F 57 C0 F3 0F 7F 44 24 60 48 C7 44 24 70 00 00 00 00 48 8B 4C 24 48 48 85 C9 74 11 48 8B 54 24 58 48 2B D1 48 83 E2 F0 E8 ?? ?? ?? ?? 0F 11 B7 20 01 00 00 48 8B CF 4C 8D 9C 24 A0 00 00 00 49 8B 5B 18
+SaveDataStoreList field read=3 size=4 48 8D 8B ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8D 8B 68 34 00 00 E8 ?? ?? ?? ??
+SaveDataStoreList field read=3 size=4 48 8B 99 ?? ?? ?? ?? 48 3B DF 74 11 48 8B 0B E8 ?? ?? ?? ?? 48 83 C3 08
+SaveDataStoreList field read=3 size=4 4C 8B B0 ?? ?? ?? ?? 4C 89 74 24 30 0F 57 C9 F3 0F 7F 8D C0 00 00 00 4C 89 BD D0 00 00 00
+SaleItemSize field read=3 size=1 48 83 EC ?? 48 81 FA 00 10 00 00 72 14 48 8B 41 F8 48 2B C8 48 83 E9 08
+SaleItemSize field read=3 size=1 48 83 C4 ?? E9 ?? ?? ?? ?? 45 33 C9 48 C7 44 24 20 00 00 00 00 45 33 C0
+SaleItemSize field read=3 size=1 48 83 EC ?? 48 85 C9 75 07 33 C0 48 83 C4 38 C3 48 81 F9 00 10 00 00 72 7F
+SaleItemStock field read=3 size=1 4C 89 41 ?? 48 83 C1 28 4D 3B D3 75 B8 48 8B D1 E8 ?? ?? ?? ?? 48 8B 0B
+SaleItemStock field read=3 size=1 0F 10 40 ?? 0F 11 41 E0 0F 10 48 30 48 83 C0 40 0F 11 49 F0 48 3B C2 75 D4
+SaleItemStock field read=3 size=1 48 89 69 ?? 48 83 C1 28 48 83 E8 01 75 E3 48 8B D1 E8 ?? ?? ?? ?? 4C 8B 5B 08
+TitleBaseLayer field read=3 size=4 49 8B 8F ?? ?? ?? ?? 48 8B 01 4C 89 AD 30 26 00 00 48 8D 15 ?? ?? ?? ??
+TitleBaseLayer field read=3 size=4 49 8B 8F ?? ?? ?? ?? 49 89 87 18 02 00 00 41 BE FF FF FF FF 48 85 C9 74 1A
+TitleBaseLayer field read=3 size=4 48 8D 99 ?? ?? ?? ?? 33 F6 48 39 B3 D0 00 00 00 76 07 48 89 B3 D0 00 00 00
+LayerUnion field read=2 size=1 FF 50 ?? 90 48 8B 8D 68 05 00 00 48 85 C9 74 1A 48 8D 85 30 05 00 00 48 3B C8
+LayerUnion field read=2 size=1 FF 50 ?? 4C 89 A5 68 05 00 00 48 8D 8D 30 03 00 00 E8 ?? ?? ?? ?? 48 83 7D C0 00
+LayerUnion field read=2 size=1 89 69 ?? 48 8D 05 ?? ?? ?? ?? 48 89 41 08 48 8D 05 ?? ?? ?? ?? 48 89 01 44 8B 4A 40 4C 8B 42 30
+PartsSettingSize field read=3 size=4 48 8D 8F ?? ?? ?? ?? 48 8D 95 30 03 00 00 E8 ?? ?? ?? ?? 90 48 8D B7 A0 05 00 00
+PartsSettingSize field read=2 size=4 41 B8 ?? ?? ?? ?? 48 8D 8D 50 26 00 00 E8 ?? ?? ?? ?? 0F 57 FF C7 85 38 26 00 00 00 00 00 00
+PartsSettingSize field read=2 size=4 41 B8 ?? ?? ?? ?? 48 8D 8D 50 26 00 00 E8 ?? ?? ?? ?? C7 85 38 26 00 00 00 00 00 00 0F 28 C7 0F 14 C7 45 0F 57 D2 F2 44 0F 10 D0 F3 0F 10 85 38 26 00 00
+PartsSettingPath field read=3 size=1 4C 8B 42 ?? 48 8B 52 28 E8 ?? ?? ?? ?? 90 48 8D 73 48 48 89 74 24 48 48 89 6E 38
+PartsSettingPath field read=3 size=1 0F 11 47 ?? 0F 11 47 40 0F 11 47 50 48 89 47 60 48 89 7C 24 40 BA 01 00 00 00 41 BC 05 00 00 00
+PartsSettingPath field read=3 size=1 0F 11 47 ?? 0F 11 47 40 0F 11 47 50 48 89 47 60 B9 28 00 00 00 E8 ?? ?? ?? ?? 48 8B D8 48 89 85 30 26 00 00 48 85 C0 0F 84 ?? ?? ?? ?? 0F 57 C0 33 C0 0F 11 03 0F 11 43 10 48 89 43 20 4C 89 6C 24 64 44 89 6C 24 6C 4C 89 6C 24 70 66 89 44 24 78 C6 44 24 7A 01 C7 44 24 58 65 00 00 00 C7 44 24 5C 64 00 00 00
+TextSettingSize field read=3 size=4 48 81 C3 ?? ?? ?? ?? 48 8D 83 A0 FE FF FF 48 3B C7 75 AF 48 8B 74 24 38
+TextSettingSize field read=3 size=4 49 8D 8F ?? ?? ?? ?? 48 8B 01 4C 89 AD 30 26 00 00 4C 89 6D 90 4C 8D 85 30 26 00 00
+TextSettingSize field read=3 size=4 48 8B 88 ?? ?? ?? ?? 8B 51 70 85 D2 74 22 83 EA 01 74 18 83 EA 01 74 0C 83 FA 01 75 13 BB 36 23 00 00
+TextSettingParam field read=3 size=1 48 8B 42 ?? 48 89 41 10 8B 42 18 89 41 18 48 83 C1 20 48 89 4C 24 48 33 ED
+TextSettingParam field read=3 size=1 48 89 41 ?? 8B 42 18 89 41 18 48 83 C1 20 48 89 4C 24 48 33 ED 48 89 69 10
+TextSettingParam field read=3 size=1 48 8D 7B ?? 48 89 7C 24 30 48 8D 55 90 48 8B CF E8 ?? ?? ?? ?? 90 48 8D 8F A0 03 00 00 48 8D 95 30 03 00 00 E8 ?? ?? ?? ?? 90 48 8D B7 A0 05 00 00
+CookingRecordCount field read=3 size=1 0F 11 41 ?? 0F 11 41 70 0F 11 81 80 00 00 00 0F 11 81 90 00 00 00 0F 11 81 A0 00 00 00 48 81 C1 F0 00 00 00
+CookingRecordCount field read=3 size=1 49 8B 4F ?? 48 8B 01 48 3B C1 74 12 33 D2 0F 1F 40 00 48 89 50 18 48 8B 00 48 3B C1 75 F4 49 8B 87 98 00 00 00 49 3B 87 A0 00 00 00 74 07 49 89 87 A0 00 00 00 4D 8B 57 40 49 8B 7F 48 48 8B CF 49 2B CA 49 BB E1 83 0F 3E F8 E0 83 0F 49 8B C3 48 F7 E9 4C 8B CA 49 C1 F9 04 49 8B C1 48 C1 E8 3F
+CookingRecordCount field read=3 size=1 49 8B 4F ?? 48 8B 01 48 3B C1 74 12 66 0F 1F 44 00 00 4C 89 60 18 48 8B 00 48 3B C1 75 F4 49 8B 87 98 00 00 00 49 3B 87 A0 00 00 00 74 07 49 89 87 A0 00 00 00 4D 8B 57 40 49 8B 7F 48 48 8B CF 49 2B CA 49 BB 89 88 88 88 88 88 88 88 49 8B C3 48 F7 E9 4C 8D 0C 11 49 C1 F9 07 49 8B C1 48 C1 E8 3F
+PendingNodeBegin field read=3 size=1 48 8D 53 ?? 48 8D 4D E7 E8 ?? ?? ?? ?? 90 48 8B 45 DF 48 89 45 97 48 8D 55 E7
+PendingNodeBegin field read=3 size=1 49 89 51 ?? 48 83 45 C7 20 EB 11 4C 8D 45 97 49 8B D1 48 8D 4D BF E8 ?? ?? ?? ??
+PendingNodeBegin field read=3 size=1 48 8D 4F ?? 48 89 31 48 89 71 08 48 89 71 10 48 C7 47 30 07 00 00 00 48 C7 47 38 08 00 00 00 C7 07 00 00 80 3F 4C 8B 47 08 BA 10 00 00 00 E8 ?? ?? ?? ?? 90 48 8D 5F 40 48 89 5C 24 20 89 33 48 89 73 08 48 89 73 10 B9 20 00 00 00 E8 ?? ?? ?? ?? 48 89 00 48 89 40 08 48 89 43 08 48 8D 4B 18
+PendingNodeEnd field read=8 size=1 40 57 48 83 EC 20 83 79 ?? 01 48 8D 05 ?? ?? ?? ?? 48 89 01 48 8B F9 75 74
+PendingNodeEnd field read=3 size=1 49 8B 45 ?? 49 2B 45 18 48 83 E0 F8 48 83 F8 08 75 23 44 89 7D 00 48 8B 4F 38
+PendingNodeEnd field read=3 size=1 4D 8B 45 ?? 49 8B 4D 18 4D 8B C8 4C 2B C9 49 C1 F9 03 49 FF C9 4A 8D 04 CD 00 00 00 00
+PendingElementSize field read=18 size=4 48 B8 43 79 0D E5 35 94 D7 00 48 3B D0 77 4C 48 69 DA ?? ?? ?? ?? 48 8B CB
+PendingElementSize field read=3 size=4 48 81 C7 ?? ?? ?? ?? 48 3B FE 75 BE 48 8B 7D 9F 4C 8B C7 48 8B 4D AF 48 2B CF
+PendingElementSize field read=3 size=4 48 69 C2 ?? ?? ?? ?? 48 3D 00 10 00 00 72 15 48 8B 7F F8 4C 2B C7 49 83 E8 08
+PendingElementDatabase field read=3 size=4 48 8B 8F ?? ?? ?? ?? 48 85 C9 74 1F 8B 41 08 85 C0 74 18 B8 FF FF FF FF

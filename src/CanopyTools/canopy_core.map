@@ -1,0 +1,10 @@
+/* What libcanopy_core.so exports: the C interface and nothing else. Hidden
+ * visibility covers the core's own code; this also keeps in the library the
+ * standard library templates it instantiates, which the headers mark as
+ * exported, so a host's own copies never bind to them. */
+{
+    global:
+        canopy_core_*;
+    local:
+        *;
+};

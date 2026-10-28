@@ -105,7 +105,7 @@ char __fastcall Detour_WalkUpdate(uint8_t* state, void* frame) {
 }  // namespace
 
 bool Install() {
-    if (!MatchesSignatures(retail::kWalkSpeedSignatures)) {
+    if (!RequirementsMet(retail::kWalkSpeedRequirements)) {
         return false;
     }
     DetourSet detours("Walk speed");

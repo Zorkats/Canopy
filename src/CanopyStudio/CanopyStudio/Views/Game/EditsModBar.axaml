@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels.Game"
+             x:Class="CanopyStudio.Views.Game.EditsModBar"
+             x:DataType="vm:EditsModBarViewModel">
+  <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="24,8">
+    <StackPanel Spacing="6">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <TextBlock Classes="label" VerticalAlignment="Center" Margin="0,0,12,0" Text="EDITS MOD" />
+
+        <!-- The chosen mod -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" IsVisible="{Binding HasMod}">
+          <TextBlock Classes="h3" VerticalAlignment="Center" Text="{Binding ModName}" />
+          <Border Classes="badge" IsVisible="{Binding IsDirty}" ToolTip.Tip="Edits made since the last save. Save writes them to canopy.ini.">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Classes="marker warn" Width="8" Height="8" VerticalAlignment="Center" />
+              <TextBlock Classes="warn small" Text="Unsaved changes" />
+            </StackPanel>
+          </Border>
+          <TextBlock Classes="faint small" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                     Text="{Binding ModFolder}" ToolTip.Tip="{Binding ModFolder}" />
+        </StackPanel>
+        <TextBlock Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding NoMod}"
+                   Classes="muted" Classes.warn="{Binding IsAsked}" Text="{Binding Prompt}" />
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0">
+          <Button Content="Choose..." Command="{Binding OpenChooserCommand}"
+                  ToolTip.Tip="Pick the mod in the game's mods folder that edits are saved to, or make one." />
+          <Button Content="Stop editing" IsVisible="{Binding HasMod}" Command="{Binding StopCommand}"
+                  ToolTip.Tip="Stop saving edits to this mod. The mod and its saved edits stay." />
+          <Button Classes="accent" Content="Save" IsVisible="{Binding HasMod}" Command="{Binding SaveCommand}"
+                  ToolTip.Tip="Write the edits to the mod's canopy.ini and check it (Ctrl+S)." />
+        </StackPanel>
+      </Grid>
+
+      <TextBlock Classes="error small" IsVisible="{Binding HasProblem}" TextWrapping="Wrap" Text="{Binding Problem}" />
+      <TextBlock Classes="error small" IsVisible="{Binding HasActionError}" TextWrapping="Wrap" Text="{Binding ActionError}" />
+
+      <!-- After a save: what Canopy's check says about the mod -->
+      <StackPanel Spacing="2" IsVisible="{Binding HasCheck}">
+        <TextBlock Classes="small" Classes.muted="{Binding !CheckFailed}" Classes.error="{Binding CheckFailed}"
+                   TextWrapping="Wrap" Text="{Binding CheckSummary}" />
+        <ItemsControl ItemsSource="{Binding CheckLines}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <SelectableTextBlock Classes="mono muted" TextWrapping="Wrap" Text="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <!-- The chooser -->
+      <Border Classes="card" Padding="12" IsVisible="{Binding IsChoosing}">
+        <Grid ColumnDefinitions="*,24,*" RowDefinitions="Auto,Auto,Auto">
+          <TextBlock Classes="label" Text="A MOD YOU HAVE" />
+          <TextBlock Grid.Row="1" Margin="0,6,0,0" Classes="muted small" TextWrapping="Wrap" IsVisible="{Binding !HasCandidates}"
+                     Text="The game's mods folder has no mod with a canopy.ini yet. Make one on the right." />
+          <StackPanel Grid.Row="1" Margin="0,6,0,0" Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasCandidates}">
+            <ComboBox MinWidth="220" ItemsSource="{Binding Candidates}" SelectedItem="{Binding SelectedCandidate}"
+                      PlaceholderText="Pick a mod" />
+            <Button Content="Use it" Command="{Binding ChooseCommand}" />
+          </StackPanel>
+
+          <TextBlock Grid.Column="2" Classes="label" Text="A NEW MOD" />
+          <StackPanel Grid.Column="2" Grid.Row="1" Margin="0,6,0,0" Orientation="Horizontal" Spacing="8">
+            <TextBox MinWidth="220" Text="{Binding NewName}" Watermark="Folder name, such as MyEdits" />
+            <Button Content="Make it" Command="{Binding CreateCommand}" />
+          </StackPanel>
+
+          <Button Grid.Row="2" Grid.ColumnSpan="3" Margin="0,10,0,0" HorizontalAlignment="Right"
+                  Content="Close" Command="{Binding CloseChooserCommand}" />
+        </Grid>
+      </Border>
+    </StackPanel>
+  </Border>
+</UserControl>

@@ -1,0 +1,144 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels.Game"
+             xmlns:gviews="using:CanopyStudio.Views.Game"
+             x:Class="CanopyStudio.Views.Game.GameTextView"
+             x:DataType="vm:GameTextViewModel">
+  <UserControl.Styles>
+    <Style Selector="ListBox#Texts ListBoxItem">
+      <Setter Property="Padding" Value="8,3" />
+      <Setter Property="MinHeight" Value="0" />
+    </Style>
+    <Style Selector="TextBlock.dim">
+      <Setter Property="Foreground" Value="{DynamicResource StudioFaintBrush}" />
+      <Setter Property="FontStyle" Value="Italic" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*" Margin="24,20,24,16">
+    <StackPanel Spacing="2" Margin="0,0,0,12">
+      <TextBlock Classes="h2" Text="Text" />
+      <TextBlock Classes="muted"
+                 TextWrapping="Wrap"
+                 Text="Every text of the tables Canopy can patch, by table, row and language. A change is saved in the edits mod as a patch; the game's files stay as they are." />
+    </StackPanel>
+
+    <Panel Grid.Row="1">
+      <!-- No game -->
+      <StackPanel IsVisible="{Binding NeedsGame}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="420">
+        <TextBlock Classes="h3" HorizontalAlignment="Center" Text="No game folder yet" />
+        <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap" Text="Choose where Village in the Shade is installed, and its texts show up here." />
+        <Button Classes="accent" HorizontalAlignment="Center" Content="Set up" Command="{Binding OpenSetupCommand}" />
+      </StackPanel>
+
+      <StackPanel IsVisible="{Binding IsBuilding}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MinWidth="320">
+        <ProgressBar IsIndeterminate="True" />
+        <TextBlock Classes="muted" HorizontalAlignment="Center" Text="{Binding Progress}" />
+      </StackPanel>
+
+      <SelectableTextBlock IsVisible="{Binding HasBuildError}"
+                           Classes="error" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="520"
+                           Text="{Binding BuildError}" />
+
+      <Grid IsVisible="{Binding IsReady}" RowDefinitions="Auto,Auto,3*,8,2*">
+        <!-- Filters -->
+        <WrapPanel Margin="0,0,0,8" ItemSpacing="12" LineSpacing="8">
+          <ComboBox MinWidth="220"
+                    AutomationProperties.Name="Table"
+                    ItemsSource="{Binding TableOptions}"
+                    SelectedItem="{Binding SelectedTable}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="label" VerticalAlignment="Center" Text="SHOWN IN" />
+            <ComboBox MinWidth="170"
+                      AutomationProperties.Name="Shown in"
+                      ItemsSource="{Binding LanguageOptions}"
+                      SelectedItem="{Binding FirstLanguage}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="label" VerticalAlignment="Center" Text="BESIDE" />
+            <ComboBox MinWidth="170"
+                      AutomationProperties.Name="Beside it"
+                      ItemsSource="{Binding SecondOptions}"
+                      SelectedItem="{Binding SecondLanguage}" />
+          </StackPanel>
+          <TextBox Width="300"
+                   AutomationProperties.Name="Search texts"
+                   Text="{Binding Search}"
+                   Watermark="Search the shown texts, enum names and ids" />
+          <CheckBox VerticalAlignment="Center" Content="Changed only" IsChecked="{Binding ChangedOnly}" />
+        </WrapPanel>
+
+        <DockPanel Grid.Row="1" Margin="0,0,0,6">
+          <SelectableTextBlock DockPanel.Dock="Bottom" Classes="small muted" TextWrapping="Wrap" Margin="0,4,0,0"
+                               IsVisible="{Binding UnreadNote, Converter={x:Static ObjectConverters.IsNotNull}}"
+                               Text="{Binding UnreadNote}" />
+          <TextBlock DockPanel.Dock="Right" Classes="small warn" VerticalAlignment="Center" Text="{Binding ChangedText}" />
+          <TextBlock Classes="small muted" VerticalAlignment="Center" Text="{Binding CountText}" />
+        </DockPanel>
+
+        <!-- The list -->
+        <Border Grid.Row="2" Classes="pane">
+          <Panel>
+            <TextBlock IsVisible="{Binding NoMatches}"
+                       Classes="muted" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" TextWrapping="Wrap"
+                       Text="No text matches. Try fewer letters, another table, or turn off Changed only." />
+            <ListBox x:Name="Texts"
+                     Background="Transparent"
+                     AutomationProperties.Name="Texts"
+                     ItemsSource="{Binding VisibleItems}"
+                     SelectedItem="{Binding SelectedItem}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:TextRowItem">
+                  <Grid ColumnDefinitions="10,130,70,190,130,*,*">
+                    <Ellipse Width="6" Height="6" VerticalAlignment="Center" HorizontalAlignment="Left"
+                             Fill="{DynamicResource StudioAccentBrush}"
+                             IsVisible="{Binding IsChanged}"
+                             ToolTip.Tip="Changed by the edits mod" />
+                    <TextBlock Grid.Column="1" Classes="mono muted" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Text="{Binding Table}" />
+                    <TextBlock Grid.Column="2" Classes="mono muted" Margin="0,0,10,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                               Text="{Binding IdText}" />
+                    <TextBlock Grid.Column="3" Classes="mono faint" Margin="0,0,10,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Text="{Binding Enum}" />
+                    <TextBlock Grid.Column="4" Classes="mono" Margin="0,0,10,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Text="{Binding Field}" />
+                    <TextBlock Grid.Column="5" Grid.ColumnSpan="{Binding FirstSpan}" Margin="0,0,10,0" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Classes.dim="{Binding FirstEmpty}"
+                               Classes.warn="{Binding IsChanged}"
+                               Text="{Binding FirstText}" />
+                    <TextBlock Grid.Column="6" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               IsVisible="{Binding HasSecond}"
+                               Classes.dim="{Binding SecondEmpty}"
+                               Classes.warn="{Binding IsChanged}"
+                               Text="{Binding SecondText}" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Panel>
+        </Border>
+
+        <GridSplitter Grid.Row="3" ResizeDirection="Rows" Background="Transparent" />
+
+        <!-- The editor -->
+        <Border Grid.Row="4" Classes="pane">
+          <Panel>
+            <TextBlock IsVisible="{Binding NoEditor}"
+                       Classes="muted" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" TextWrapping="Wrap"
+                       Text="Pick a text above to see it in every language and change it." />
+            <ContentControl IsVisible="{Binding HasEditor}" Content="{Binding Editor}">
+              <ContentControl.ContentTemplate>
+                <DataTemplate x:DataType="vm:TextEditorViewModel">
+                  <gviews:TextEditorView />
+                </DataTemplate>
+              </ContentControl.ContentTemplate>
+            </ContentControl>
+          </Panel>
+        </Border>
+      </Grid>
+    </Panel>
+  </Grid>
+</UserControl>

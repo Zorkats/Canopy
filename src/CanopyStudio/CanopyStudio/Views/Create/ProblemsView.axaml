@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels.Create"
+             xmlns:check="using:CanopyStudio.ViewModels.Create.Check"
+             x:Class="CanopyStudio.Views.Create.ProblemsView"
+             x:DataType="vm:ProblemsViewModel">
+  <!-- The live check's messages. Severity colours come from the tokens:
+       errors in the fail colour, warnings in the accent, notes muted. -->
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,8">
+      <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{Binding Status}" />
+      <TextBlock Classes="faint small"
+                 TextWrapping="Wrap"
+                 IsVisible="{Binding HasVanillaNote}"
+                 Text="{Binding VanillaNote}" />
+    </StackPanel>
+
+    <ListBox Name="List"
+             AutomationProperties.Name="Problems"
+             IsVisible="{Binding HasRows}"
+             Background="Transparent"
+             ItemsSource="{Binding Rows}"
+             SelectedItem="{Binding Selected}">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="check:ProblemRow">
+          <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+            <TextBlock Classes="small"
+                       Classes.error="{Binding IsError}"
+                       Classes.warn="{Binding IsWarning}"
+                       Classes.muted="{Binding IsNote}"
+                       FontWeight="SemiBold"
+                       MinWidth="64"
+                       Text="{Binding SeverityText}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="8,0,0,0">
+              <TextBlock Classes="faint small" VerticalAlignment="Center" Text="{Binding LineText}" />
+              <TextBlock Classes="faint mono" VerticalAlignment="Center" Text="{Binding PlaceText}" />
+            </StackPanel>
+            <Button Grid.Column="2" Grid.RowSpan="2" Classes="small"
+                    VerticalAlignment="Center"
+                    Content="Show"
+                    AutomationProperties.Name="Show this problem"
+                    IsVisible="{Binding CanShow}"
+                    Command="{Binding $parent[ListBox].((vm:ProblemsViewModel)DataContext).ShowCommand}"
+                    CommandParameter="{Binding}" />
+            <SelectableTextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                                 Margin="0,2,8,0"
+                                 TextWrapping="Wrap"
+                                 Text="{Binding Message}" />
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</UserControl>

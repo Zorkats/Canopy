@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Canopy Studio's window: Avalonia views over CanopyStudio.Core. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>CanopyStudio</AssemblyName>
+    <RootNamespace>CanopyStudio</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.11" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.11" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.11" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.11" />
+    <!-- The raw ini view and, later, the Lua editor. MIT. -->
+    <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.4.1" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <!-- Avalonia 11.3.11 pulls 0.21.2, which has advisory GHSA-xrw6-gwf8-vvr9.
+         Only Linux uses it, but the fixed release costs nothing. -->
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
+  </ItemGroup>
+
+  <!-- Live inspection, Debug only and opt-in: build with
+       -p:CanopyLiveInspect=true (or that environment variable) to open a
+       local pipe for the Zafiro Avalonia MCP inspector. The nuget.org
+       AppHost writes a UTF-8 BOM that stalls Windows named pipes, so this
+       expects a patched build published as 0.1.20-local.1 in a local
+       NuGet source. Without the switch nothing changes. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug' And '$(CanopyLiveInspect)' == 'true'">
+    <DefineConstants>$(DefineConstants);CANOPY_LIVE_INSPECT</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug' And '$(CanopyLiveInspect)' == 'true'">
+    <PackageReference Include="Zafiro.Avalonia.Mcp.AppHost" Version="0.1.20-local.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CanopyStudio.Core\CanopyStudio.Core.csproj" />
+  </ItemGroup>
+</Project>

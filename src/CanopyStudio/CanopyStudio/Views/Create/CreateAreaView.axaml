@@ -1,0 +1,211 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:cvm="using:CanopyStudio.ViewModels.Create"
+             xmlns:core="using:CanopyStudio.Core.Create"
+             xmlns:cviews="using:CanopyStudio.Views.Create"
+             x:Class="CanopyStudio.Views.Create.CreateAreaView"
+             x:DataType="cvm:CreateAreaViewModel">
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding Project.SaveNowCommand}" />
+  </UserControl.KeyBindings>
+
+  <UserControl.Styles>
+    <!-- Template tiles: one picked at a time, marked with the accent. -->
+    <Style Selector="ListBox.templates">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.templates ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,10,10" />
+      <Setter Property="CornerRadius" Value="{DynamicResource StudioRadius}" />
+    </Style>
+    <Style Selector="ListBox.templates ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="ListBox.templates ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioSelectedHoverBrush}" />
+    </Style>
+    <Style Selector="ListBox.templates ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioSelectedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Panel>
+    <!-- No project open: new, open, recent -->
+    <ScrollViewer IsVisible="{Binding ShowStart}">
+      <Border DataContext="{Binding Start}">
+      <StackPanel x:DataType="cvm:CreateStartViewModel"
+                  Margin="40,36"
+                  MaxWidth="980"
+                  HorizontalAlignment="Left"
+                  Spacing="28">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="h1" Text="Make a mod" />
+          <TextBlock Classes="muted"
+                     MaxWidth="660"
+                     HorizontalAlignment="Left"
+                     TextWrapping="Wrap"
+                     Text="A Canopy mod is a folder with a canopy.ini in it. Start one from a template, or open a mod folder you already have, and fill in its forms. Nothing is written to the game folder." />
+        </StackPanel>
+
+        <SelectableTextBlock Classes="error" TextWrapping="Wrap" IsVisible="{Binding HasMessage}" Text="{Binding Message}" />
+
+        <!-- New mod -->
+        <StackPanel Spacing="10">
+          <TextBlock Classes="label" Text="NEW MOD" />
+          <Border Classes="card" Padding="20">
+            <StackPanel Spacing="16">
+              <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
+                <TextBlock Classes="label" VerticalAlignment="Center" Margin="0,0,16,10" Text="NAME" />
+                <TextBox Grid.Column="1"
+                         Margin="0,0,0,10"
+                         AutomationProperties.Name="Mod name"
+                         Watermark="For example MyFirstMod: letters, digits, '_' or '-'"
+                         Text="{Binding NewName}">
+                  <TextBox.KeyBindings>
+                    <KeyBinding Gesture="Enter" Command="{Binding CreateCommand}" />
+                  </TextBox.KeyBindings>
+                </TextBox>
+                <TextBlock Grid.Row="1" Classes="label" VerticalAlignment="Center" Margin="0,0,16,0" Text="IN" />
+                <TextBox Grid.Row="1"
+                         Grid.Column="1"
+                         Classes="mono"
+                         AutomationProperties.Name="Parent folder"
+                         Text="{Binding Parent}" />
+                <Button Grid.Row="1" Grid.Column="2" Margin="8,0,0,0" Content="Browse..." Command="{Binding BrowseParentCommand}" />
+                <TextBlock Grid.Row="2"
+                           Grid.Column="1"
+                           Margin="0,8,0,0"
+                           Classes="error small"
+                           TextWrapping="Wrap"
+                           IsVisible="{Binding HasNameProblem}"
+                           Text="{Binding NameProblem}" />
+              </Grid>
+
+              <StackPanel Spacing="8">
+                <TextBlock Classes="label" Text="START FROM" />
+                <ListBox Classes="templates"
+                         AutomationProperties.Name="Templates"
+                         ItemsSource="{Binding Templates}"
+                         SelectedItem="{Binding SelectedTemplate}">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="core:ProjectTemplate">
+                      <StackPanel Width="210" Margin="14,10" Spacing="4">
+                        <TextBlock Classes="h3" Text="{Binding Title}" />
+                        <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{Binding Description}" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </StackPanel>
+
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Classes="faint small mono"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,16,0"
+                           Text="{Binding FolderPreview}" />
+                <Button Grid.Column="1" Classes="accent" Content="Make the mod" Command="{Binding CreateCommand}" />
+              </Grid>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- Open -->
+        <StackPanel Spacing="10">
+          <TextBlock Classes="label" Text="OPEN" />
+          <Border Classes="card" Padding="20">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="muted"
+                         VerticalAlignment="Center"
+                         TextWrapping="Wrap"
+                         Margin="0,0,16,0"
+                         Text="A folder with a canopy.ini, such as one in the game's mods folder. A folder without one opens as a new, empty mod." />
+              <Button Grid.Column="1" Content="Open a mod folder..." Command="{Binding OpenFolderCommand}" />
+            </Grid>
+          </Border>
+        </StackPanel>
+
+        <!-- Recent -->
+        <StackPanel Spacing="10" IsVisible="{Binding HasRecent}">
+          <TextBlock Classes="label" Text="RECENT" />
+          <ItemsControl ItemsSource="{Binding Recent}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="cvm:RecentProjectItem">
+                <Border Classes="pane" Padding="14,10" Margin="0,0,0,8">
+                  <Grid ColumnDefinitions="*,Auto,Auto">
+                    <StackPanel Spacing="2" Opacity="1" Classes.missing="{Binding !Exists}">
+                      <TextBlock Classes="h3" Text="{Binding Name}" />
+                      <TextBlock Classes="faint small mono" TextTrimming="CharacterEllipsis" Text="{Binding State}" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            Margin="12,0,0,0"
+                            VerticalAlignment="Center"
+                            Content="Open"
+                            AutomationProperties.Name="{Binding Name, StringFormat='Open {0}'}"
+                            Command="{Binding OpenCommand}" />
+                    <Button Grid.Column="2"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            Classes="small"
+                            Content="Remove from list"
+                            AutomationProperties.Name="{Binding Name, StringFormat='Remove {0} from the recent list'}"
+                            Command="{Binding RemoveCommand}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+            <ItemsControl.Styles>
+              <!-- A folder that is gone shows greyed. -->
+              <Style Selector="StackPanel.missing">
+                <Setter Property="Opacity" Value="0.5" />
+              </Style>
+            </ItemsControl.Styles>
+          </ItemsControl>
+        </StackPanel>
+      </StackPanel>
+      </Border>
+    </ScrollViewer>
+
+    <!-- A project -->
+    <DockPanel IsVisible="{Binding HasProject}">
+      <Border DockPanel.Dock="Top"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="20,12">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="2" Margin="0,0,16,0">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Classes="h2" Text="{Binding Project.Title}" />
+              <Border Classes="badge"
+                      VerticalAlignment="Center"
+                      IsVisible="{Binding Project.IsDirty}"
+                      ToolTip.Tip="The mod has changes that are not saved. Ctrl+S saves them.">
+                <TextBlock Classes="small warn" Text="Unsaved" />
+              </Border>
+            </StackPanel>
+            <TextBlock Classes="faint small mono" TextTrimming="CharacterEllipsis" Text="{Binding Project.Folder}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button Classes="accent"
+                    Content="Save"
+                    ToolTip.Tip="Writes canopy.ini and the Lua files (Ctrl+S)."
+                    Command="{Binding Project.SaveNowCommand}" />
+            <Button Content="Reload from disk" Command="{Binding ReloadCommand}" />
+            <Button Content="Close" Command="{Binding CloseCommand}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <cviews:ProjectView x:Name="ProjectPane" DataContext="{Binding Project}" />
+    </DockPanel>
+  </Panel>
+</UserControl>

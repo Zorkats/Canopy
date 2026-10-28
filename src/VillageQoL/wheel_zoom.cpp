@@ -101,7 +101,7 @@ char __fastcall Detour_CameraUpdate(uint8_t* control, void* frame) {
 }  // namespace
 
 bool Install() {
-    if (!MatchesSignatures(retail::kWheelZoomSignatures)) {
+    if (!RequirementsMet(retail::kWheelZoomRequirements)) {
         return false;
     }
     g_TweenStart = GameFunction<TweenStartFn>(retail::kTweenStart);

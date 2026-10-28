@@ -1,0 +1,179 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels"
+             xmlns:views="using:CanopyStudio.Views"
+             x:Class="CanopyStudio.Views.SetupView"
+             x:DataType="vm:SetupViewModel">
+  <ScrollViewer>
+    <StackPanel Margin="40,36" MaxWidth="820" HorizontalAlignment="Left" Spacing="28">
+      <StackPanel Spacing="6">
+        <TextBlock Classes="h1" Text="Game folder" />
+        <TextBlock Classes="muted"
+                   TextWrapping="Wrap"
+                   Text="Canopy Studio needs the folder where Village in the Shade is installed: the one with village.exe in it. It only reads from that folder." />
+        <Button HorizontalAlignment="Left"
+                Margin="0,6,0,0"
+                Content="Run first-time setup again"
+                Command="{Binding RunOnboardingCommand}" />
+      </StackPanel>
+
+      <!-- What Steam knows -->
+      <StackPanel Spacing="10">
+        <TextBlock Classes="label" Text="FOUND IN YOUR STEAM LIBRARIES" />
+        <TextBlock Classes="muted" IsVisible="{Binding IsSearching}" Text="Looking through your Steam libraries..." />
+        <TextBlock Classes="muted"
+                   TextWrapping="Wrap"
+                   IsVisible="{Binding NoCandidates}"
+                   Text="Steam does not list the game on this PC. Pick its folder below instead." />
+        <ItemsControl ItemsSource="{Binding Candidates}" IsVisible="{Binding HasCandidates}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:CandidateItem">
+              <Border Classes="pane" Padding="14,10" Margin="0,0,0,8">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="mono"
+                             VerticalAlignment="Center"
+                             TextTrimming="CharacterEllipsis"
+                             Text="{Binding Folder}" />
+                  <Button Grid.Column="1" Margin="12,0,0,0" Content="Check this folder" Command="{Binding Use}" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <!-- Any folder -->
+      <StackPanel Spacing="10">
+        <TextBlock Classes="label" Text="FOLDER" />
+        <Grid ColumnDefinitions="*,Auto,Auto">
+          <TextBox Classes="mono"
+                   Text="{Binding FolderText}"
+                   Watermark="{Binding FolderExample}">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding CheckCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+          <Button Grid.Column="1" Margin="8,0,0,0" Content="Browse..." Command="{Binding BrowseCommand}" />
+          <Button Grid.Column="2" Margin="8,0,0,0" Content="Check" Command="{Binding CheckCommand}" />
+        </Grid>
+      </StackPanel>
+
+      <!-- The checks -->
+      <Border Classes="card" Padding="20" IsVisible="{Binding IsChecking}">
+        <TextBlock Classes="muted" Text="Checking the folder..." />
+      </Border>
+      <Border Classes="card" Padding="20" IsVisible="{Binding HasChecks}">
+        <StackPanel Spacing="16">
+          <ItemsControl ItemsSource="{Binding Checks}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:CheckItem">
+                <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,14">
+                  <Ellipse Classes="marker"
+                           Classes.pass="{Binding IsPass}"
+                           Classes.warn="{Binding IsWarn}"
+                           Classes.fail="{Binding IsFail}"
+                           Margin="0,5,14,0"
+                           VerticalAlignment="Top" />
+                  <StackPanel Grid.Column="1" Spacing="2">
+                    <TextBlock Classes="h3" Text="{Binding Title}" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding Detail}" />
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Border Height="1" Background="{DynamicResource StudioBorderBrush}" />
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,16,0" Text="{Binding Verdict}" />
+            <Button Grid.Column="1"
+                    Classes="accent"
+                    Content="Use this folder"
+                    IsVisible="{Binding !IsInUse}"
+                    IsEnabled="{Binding CanUse}"
+                    Command="{Binding UseCommand}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <!-- Canopy and VillageQoL in the folder in use, each installed on its own -->
+      <StackPanel Spacing="10" IsVisible="{Binding Canopy.HasGame}">
+        <TextBlock Classes="label" Text="CANOPY IN THIS GAME FOLDER" />
+        <Border Classes="card" Padding="20">
+          <StackPanel Spacing="14">
+            <TextBlock Classes="muted"
+                       TextWrapping="Wrap"
+                       Text="{Binding CanopyIntro}" />
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
+              <TextBlock Classes="label" VerticalAlignment="Center" Margin="0,0,16,10" Text="CANOPY" />
+              <SelectableTextBlock Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,10" TextWrapping="Wrap" Text="{Binding Canopy.InstalledText}" />
+              <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,0,0,10">
+                <Button Classes="accent"
+                        IsVisible="{Binding Canopy.ShowInstall}"
+                        Content="{Binding Canopy.InstallText}"
+                        Command="{Binding Canopy.InstallCommand}" />
+                <Button Classes="accent"
+                        IsVisible="{Binding Canopy.ShowUpdate}"
+                        Content="{Binding Canopy.UpdateText}"
+                        Command="{Binding Canopy.UpdateCommand}" />
+                <Button IsVisible="{Binding Canopy.ShowUninstall}"
+                        Content="Uninstall"
+                        Command="{Binding Canopy.AskUninstallCommand}" />
+              </StackPanel>
+              <TextBlock Grid.Row="1" Classes="label" VerticalAlignment="Center" Margin="0,0,16,10" Text="VILLAGEQOL" />
+              <SelectableTextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,10" TextWrapping="Wrap" Text="{Binding Canopy.QoLText}" />
+              <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,0,0,10">
+                <Button Classes="accent"
+                        IsVisible="{Binding Canopy.ShowQoLInstall}"
+                        Content="{Binding Canopy.QoLInstallText}"
+                        Command="{Binding Canopy.InstallQoLCommand}" />
+                <Button Classes="accent"
+                        IsVisible="{Binding Canopy.ShowQoLUpdate}"
+                        Content="{Binding Canopy.QoLUpdateText}"
+                        Command="{Binding Canopy.UpdateQoLCommand}" />
+                <Button IsVisible="{Binding Canopy.ShowQoLRemove}"
+                        Content="Remove"
+                        Command="{Binding Canopy.RemoveQoLCommand}" />
+              </StackPanel>
+              <TextBlock Grid.Row="2" Classes="label" VerticalAlignment="Center" Margin="0,0,16,0" Text="LATEST RELEASE" />
+              <SelectableTextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0" TextWrapping="Wrap" Text="{Binding Canopy.LatestText}" />
+              <Button Grid.Row="2" Grid.Column="2" HorizontalAlignment="Right" Content="Check again" Command="{Binding Canopy.CheckAgainCommand}" />
+            </Grid>
+            <TextBlock Classes="muted" IsVisible="{Binding Canopy.ShowWork}" Text="{Binding Canopy.WorkText}" />
+            <SelectableTextBlock TextWrapping="Wrap"
+                                 IsVisible="{Binding Canopy.ShowOutcome}"
+                                 Classes.error="{Binding Canopy.OutcomeFailed}"
+                                 Text="{Binding Canopy.Outcome}" />
+            <Border Classes="pane" Padding="14,12" IsVisible="{Binding Canopy.IsConfirmingUninstall}">
+              <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Margin="0,0,16,0"
+                           Text="Remove dinput8.dll from this folder? The mods folder and every mod in it, VillageQoL too, stay; they load again once Canopy is back." />
+                <Button Grid.Column="1" Classes="accent" Content="Remove Canopy" Command="{Binding Canopy.UninstallCommand}" />
+                <Button Grid.Column="2" Margin="8,0,0,0" Content="Keep it" Command="{Binding Canopy.CancelUninstallCommand}" />
+              </Grid>
+            </Border>
+            <views:ProtonLaunchView DataContext="{Binding Proton}" IsVisible="{Binding Needed}" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <!-- The game's fonts and art, for the seasonal themes -->
+      <StackPanel Spacing="10">
+        <TextBlock Classes="label" Text="GAME FONTS AND ART" />
+        <Border Classes="card" Padding="20">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="muted"
+                       TextWrapping="Wrap"
+                       Text="The seasonal backdrops and the fonts are Village in the Shade's own. Canopy Studio does not include them: it copies them from your copy of the game into a folder on this PC, reading the game folder only." />
+            <SelectableTextBlock Classes="mono muted" TextWrapping="Wrap" Text="{Binding Appearance.CacheFolder}" />
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,16,0" Text="{Binding Appearance.ArtSummary}" />
+              <Button Grid.Column="1" Content="Copy again" Command="{Binding Appearance.CopyArtAgainCommand}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

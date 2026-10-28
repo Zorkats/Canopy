@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:refs="using:CanopyStudio.ViewModels.Create.Refs"
+             xmlns:pick="using:CanopyStudio.Controls.Pickers"
+             x:Class="CanopyStudio.Views.Create.Refs.RefPickerView"
+             x:DataType="refs:RefPickerModel">
+  <!-- The value as a button that opens the list; Clear removes it. A value
+       that names nothing stays as written, with the reason under it. -->
+  <StackPanel Spacing="4">
+    <Grid ColumnDefinitions="*,Auto">
+      <Button x:Name="Field"
+              AutomationProperties.Name="{Binding Title}"
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Stretch"
+              Padding="6,4,10,4"
+              MinHeight="42">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <pick:PickerIcon IsVisible="{Binding HasIcon}"
+                           Margin="0,0,8,0"
+                           IconId="{Binding IconId}"
+                           Assets="{Binding Assets}" />
+          <TextBlock Grid.Column="1"
+                     Margin="4,0,8,0"
+                     VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis"
+                     Classes.muted="{Binding IsTitleMuted}"
+                     Text="{Binding Title}" />
+          <TextBlock Grid.Column="2"
+                     Classes="mono muted"
+                     VerticalAlignment="Center"
+                     Text="{Binding Detail}" />
+        </Grid>
+      </Button>
+      <Button Grid.Column="1"
+              Classes="small"
+              Margin="6,0,0,0"
+              VerticalAlignment="Center"
+              Content="Clear"
+              ToolTip.Tip="Remove the value"
+              IsVisible="{Binding HasValue}"
+              Click="OnClear" />
+    </Grid>
+    <TextBlock Classes="warn small"
+               TextWrapping="Wrap"
+               IsVisible="{Binding HasWarning}"
+               Text="{Binding Warning}" />
+  </StackPanel>
+</UserControl>

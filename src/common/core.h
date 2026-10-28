@@ -47,13 +47,31 @@ Fn GameFunction(uintptr_t rva) {
     return reinterpret_cast<Fn>(g_ModuleBase + rva);
 }
 
-// True when every signature in the table matches; logs the first mismatch.
+// Finds the game addresses of the running village.exe, once per DLL, after
+// g_ModuleBase is set: from game_builds.txt for a checked build, otherwise
+// by searching the exe file, or the loaded image when the file cannot be
+// read. Never logs, so the loader runs it under the loader lock.
+void ResolveAddresses();
+bool AddressesResolved();
+// True when the running build is listed in game_builds.txt. Features that
+// write saves only run on a checked build.
+bool CheckedBuild();
+// How the addresses were found, one line for the log.
+std::string AddressReport();
+// The resolved RVA of the address called name, 0 when it was not found or
+// nothing is resolved yet.
+uintptr_t FindAddress(const char* name);
+// The resolved address or field value called name, false when it was not
+// found or nothing is resolved yet.
+bool FindValue(const char* name, uintptr_t& value);
+
+// True when the running build meets every requirement in the list; logs the
+// first one it does not.
 template <size_t N>
-bool MatchesSignatures(const retail::CodeSignature (&signatures)[N]) {
-    for (const retail::CodeSignature& signature : signatures) {
-        const void* code = reinterpret_cast<const void*>(g_ModuleBase + signature.rva);
-        if (std::memcmp(code, signature.bytes, sizeof(signature.bytes)) != 0) {
-            Log(std::string("Signature mismatch at ") + signature.name + ", unsupported game build.");
+bool RequirementsMet(const retail::Requirement* const (&requirements)[N]) {
+    for (const retail::Requirement* requirement : requirements) {
+        if (!requirement->Met()) {
+            Log(requirement->Problem());
             return false;
         }
     }

@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels.Create"
+             xmlns:ae="using:AvaloniaEdit"
+             xmlns:aee="using:AvaloniaEdit.Editing"
+             x:Class="CanopyStudio.Views.Create.RawIniView"
+             x:DataType="vm:RawIniViewModel">
+  <UserControl.Styles>
+    <Style Selector="aee|TextArea">
+      <Setter Property="SelectionBrush" Value="{DynamicResource StudioAccent30Brush}" />
+    </Style>
+  </UserControl.Styles>
+  <!-- canopy.ini as text. The colours of keys, values and sections, and the
+       problem marks, are drawn in code from the theme tokens. -->
+  <Border Classes="pane" Padding="4">
+    <ae:TextEditor Name="Editor"
+                   AutomationProperties.Name="canopy.ini text"
+                   ShowLineNumbers="True"
+                   FontFamily="{DynamicResource StudioMono}"
+                   Background="Transparent"
+                   Foreground="{DynamicResource StudioTextBrush}"
+                   LineNumbersForeground="{DynamicResource StudioFaintBrush}"
+                   HorizontalScrollBarVisibility="Auto"
+                   VerticalScrollBarVisibility="Auto" />
+  </Border>
+</UserControl>

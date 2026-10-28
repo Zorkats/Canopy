@@ -1,0 +1,110 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels"
+             xmlns:browse="using:CanopyStudio.Core.Browse"
+             x:Class="CanopyStudio.Views.FilesView"
+             x:DataType="vm:FilesViewModel">
+  <Grid RowDefinitions="Auto,*" Margin="24,20,24,16">
+    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+      <StackPanel Spacing="2" VerticalAlignment="Center">
+        <TextBlock Classes="h2" Text="Files" />
+        <TextBlock Classes="muted" Text="Everything in the game's archives. Read only." />
+      </StackPanel>
+      <Grid Grid.Column="1" ColumnDefinitions="*,Auto" VerticalAlignment="Center" IsVisible="{Binding IsReady}">
+        <TextBox Width="340" Text="{Binding SearchText}" Watermark="Search every file path" />
+        <Button Grid.Column="1" Margin="8,0,0,0" Content="Clear" Command="{Binding ClearSearchCommand}" />
+      </Grid>
+    </Grid>
+
+    <Panel Grid.Row="1">
+      <!-- No game -->
+      <StackPanel IsVisible="{Binding NeedsGame}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="420">
+        <TextBlock Classes="h3" HorizontalAlignment="Center" Text="No game folder yet" />
+        <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap" Text="Choose where Village in the Shade is installed, and its files show up here." />
+        <Button Classes="accent" HorizontalAlignment="Center" Content="Set up" Command="{Binding OpenSetupCommand}" />
+      </StackPanel>
+
+      <TextBlock IsVisible="{Binding IsLoading}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Reading the archives..." />
+      <TextBlock IsVisible="{Binding LoadError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                 Classes="error" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="520"
+                 Text="{Binding LoadError}" />
+
+      <Grid ColumnDefinitions="250,8,*,8,380" IsVisible="{Binding IsReady}">
+        <!-- Folders -->
+        <Border Classes="pane" Padding="4">
+          <TreeView ItemsSource="{Binding Roots}" SelectedItem="{Binding SelectedFolder}">
+            <TreeView.Styles>
+              <Style Selector="TreeViewItem" x:DataType="browse:FolderNode">
+                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+              </Style>
+            </TreeView.Styles>
+            <TreeView.ItemTemplate>
+              <TreeDataTemplate x:DataType="browse:FolderNode" ItemsSource="{Binding Children}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{Binding Name}" />
+                  <TextBlock Classes="faint small" VerticalAlignment="Center" Text="{Binding TotalFiles, StringFormat='{}{0:N0}'}" />
+                </StackPanel>
+              </TreeDataTemplate>
+            </TreeView.ItemTemplate>
+          </TreeView>
+        </Border>
+        <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+        <!-- Files -->
+        <Border Grid.Column="2" Classes="pane">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Classes="muted small" Margin="12,10" TextWrapping="Wrap" Text="{Binding ListCaption}" />
+            <DataGrid ItemsSource="{Binding VisibleFiles}" SelectedItem="{Binding SelectedFile}">
+              <DataGrid.Columns>
+                <DataGridTextColumn x:DataType="vm:FileItem" Header="Name" Width="*" Binding="{Binding Display}" />
+                <DataGridTextColumn x:DataType="vm:FileItem" Header="Size" Width="96" Binding="{Binding SizeText}" SortMemberPath="File.Size" />
+              </DataGrid.Columns>
+            </DataGrid>
+          </DockPanel>
+        </Border>
+        <GridSplitter Grid.Column="3" ResizeDirection="Columns" />
+
+        <!-- Details and preview -->
+        <Border Grid.Column="4" Classes="pane">
+          <Panel>
+            <TextBlock IsVisible="{Binding NoSelection}" Classes="muted" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" TextWrapping="Wrap" Text="Pick a file to see its details and a preview." />
+            <ScrollViewer IsVisible="{Binding HasSelection}">
+              <StackPanel Margin="18,16" Spacing="16">
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="h3" TextWrapping="Wrap" Text="{Binding SelectedFile.Name, FallbackValue=''}" />
+                  <SelectableTextBlock Classes="mono muted" TextWrapping="Wrap" Text="{Binding SelectedFile.File.Path, FallbackValue=''}" />
+                </StackPanel>
+
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                  <TextBlock Grid.Row="0" Classes="label" Margin="0,2,16,6" Text="SIZE" />
+                  <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,6" Text="{Binding SelectedSize}" />
+                  <TextBlock Grid.Row="1" Classes="label" Margin="0,2,16,6" Text="ARCHIVE" />
+                  <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,6" Text="{Binding SelectedFile.File.Archive, FallbackValue=''}" />
+                  <TextBlock Grid.Row="2" Classes="label" Margin="0,2,16,0" Text="CHANGED" />
+                  <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedTime}" />
+                </Grid>
+                <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding HasCopies}" Text="{Binding SelectedCopies}" />
+
+                <StackPanel Spacing="10">
+                  <TextBlock Classes="label" Text="PREVIEW" />
+                  <TextBlock Classes="muted" IsVisible="{Binding IsPreviewLoading}" Text="Decoding the texture..." />
+                  <Border IsVisible="{Binding HasPreviewImage}"
+                          Background="{DynamicResource StudioCheckerBrush}"
+                          CornerRadius="{DynamicResource StudioRadius}"
+                          ClipToBounds="True"
+                          Height="300">
+                    <Image Source="{Binding PreviewImage}" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None" />
+                  </Border>
+                  <TextBlock Classes="faint small" IsVisible="{Binding HasPreviewImage}" Text="{Binding PreviewCaption}" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding PreviewNote, Converter={x:Static ObjectConverters.IsNotNull}}" Text="{Binding PreviewNote}" />
+                  <Button Classes="accent" HorizontalAlignment="Left" IsVisible="{Binding IsTableFile}" Content="Open in Tables" Command="{Binding OpenInTablesCommand}" />
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </Panel>
+        </Border>
+      </Grid>
+    </Panel>
+  </Grid>
+</UserControl>

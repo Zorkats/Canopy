@@ -1,0 +1,146 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels.Game"
+             x:Class="CanopyStudio.Views.Game.GameSoundView"
+             x:DataType="vm:GameSoundViewModel">
+  <Grid RowDefinitions="Auto,*" Margin="24,20,24,16">
+    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
+      <StackPanel Spacing="2" VerticalAlignment="Center">
+        <TextBlock Classes="h2" Text="Sound" />
+        <TextBlock Classes="muted" Text="The game's music and sound effects. Play, export, or replace them in the edits mod." />
+      </StackPanel>
+      <Grid Grid.Column="1" ColumnDefinitions="*,Auto" VerticalAlignment="Center" IsVisible="{Binding IsReady}">
+        <TextBox Width="300" Text="{Binding FilterText}" Watermark="Filter by path"
+                 AutomationProperties.Name="Filter sounds by path" />
+        <Button Grid.Column="1" Margin="8,0,0,0" Content="Clear" Command="{Binding ClearFilterCommand}" />
+      </Grid>
+    </Grid>
+
+    <Panel Grid.Row="1">
+      <TextBlock IsVisible="{Binding NeedsGame}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center"
+                 TextWrapping="Wrap" MaxWidth="420" TextAlignment="Center"
+                 Text="Choose where Village in the Shade is installed in Setup, and its sounds show up here." />
+      <TextBlock IsVisible="{Binding IsLoading}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Reading the archives..." />
+      <TextBlock IsVisible="{Binding LoadError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                 Classes="error" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="520"
+                 Text="{Binding LoadError}" />
+
+      <Grid ColumnDefinitions="*,8,400" IsVisible="{Binding IsReady}">
+        <!-- The two lists -->
+        <Border Classes="pane">
+          <TabControl SelectedIndex="{Binding ListIndex}" Padding="0">
+            <TabItem Header="{Binding MusicTitle}">
+              <DataGrid ItemsSource="{Binding Music}" SelectedItem="{Binding SelectedMusic}" IsReadOnly="True"
+                        AutomationProperties.Name="Music">
+                <DataGrid.Columns>
+                  <DataGridTextColumn x:DataType="vm:SoundEntry" Header="Path" Width="*" Binding="{Binding Name}" />
+                  <DataGridTextColumn x:DataType="vm:SoundEntry" Header="Codec" Width="100" Binding="{Binding CodecText}" />
+                  <DataGridTextColumn x:DataType="vm:SoundEntry" Header="Channels" Width="86" Binding="{Binding ChannelsText}" />
+                  <DataGridTextColumn x:DataType="vm:SoundEntry" Header="Length" Width="76" Binding="{Binding LengthText}" SortMemberPath="Frames" />
+                  <DataGridTextColumn x:DataType="vm:SoundEntry" Header="Loops" Width="66" Binding="{Binding LoopText}" />
+                  <DataGridTextColumn x:DataType="vm:SoundEntry" Header="Edits mod" Width="90" Binding="{Binding ReplacedText}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </TabItem>
+            <TabItem Header="{Binding EffectsTitle}">
+              <DataGrid ItemsSource="{Binding Effects}" SelectedItem="{Binding SelectedEffect}" IsReadOnly="True"
+                        AutomationProperties.Name="Sound effects">
+                <DataGrid.Columns>
+                  <DataGridTextColumn x:DataType="vm:SoundEntry" Header="Path" Width="*" Binding="{Binding Name}" />
+                  <DataGridTextColumn x:DataType="vm:SoundEntry" Header="Codec" Width="100" Binding="{Binding CodecText}" />
+                  <DataGridTextColumn x:DataType="vm:SoundEntry" Header="Channels" Width="86" Binding="{Binding ChannelsText}" />
+                  <DataGridTextColumn x:DataType="vm:SoundEntry" Header="Length" Width="76" Binding="{Binding LengthText}" SortMemberPath="Frames" />
+                  <DataGridTextColumn x:DataType="vm:SoundEntry" Header="Loops" Width="66" Binding="{Binding LoopText}" />
+                  <DataGridTextColumn x:DataType="vm:SoundEntry" Header="Edits mod" Width="90" Binding="{Binding ReplacedText}" />
+                </DataGrid.Columns>
+              </DataGrid>
+            </TabItem>
+          </TabControl>
+        </Border>
+        <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+        <!-- The sound picked -->
+        <Border Grid.Column="2" Classes="pane">
+          <Panel>
+            <TextBlock IsVisible="{Binding NoSelection}" Classes="muted" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" TextWrapping="Wrap" Text="Pick a sound to play, export or replace it." />
+            <ScrollViewer IsVisible="{Binding HasSelection}">
+              <StackPanel Margin="18,16" Spacing="16">
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="h3" TextWrapping="Wrap" Text="{Binding Selected.Name, FallbackValue=''}" />
+                  <SelectableTextBlock Classes="mono muted" TextWrapping="Wrap" Text="{Binding Selected.Path, FallbackValue=''}" />
+                </StackPanel>
+
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                  <TextBlock Grid.Row="0" Classes="label" Margin="0,2,16,6" Text="CODEC" />
+                  <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,6" Text="{Binding Selected.CodecText, FallbackValue=''}" />
+                  <TextBlock Grid.Row="1" Classes="label" Margin="0,2,16,6" Text="CHANNELS" />
+                  <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,6" Text="{Binding Selected.ChannelsText, FallbackValue=''}" />
+                  <TextBlock Grid.Row="2" Classes="label" Margin="0,2,16,0" Text="LENGTH" />
+                  <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Selected.LengthText, FallbackValue=''}" />
+                </Grid>
+                <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding LoopDetail}" />
+                <TextBlock Classes="error" TextWrapping="Wrap" Text="{Binding Selected.HeaderError, FallbackValue=''}"
+                           IsVisible="{Binding Selected.HeaderError, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}" />
+
+                <!-- Player -->
+                <StackPanel Spacing="10">
+                  <TextBlock Classes="label" Text="LISTEN" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Classes="accent" Content="{Binding PlayLabel}" Command="{Binding PlayCommand}" IsEnabled="{Binding CanPlay}" />
+                    <Button Content="Pause" Command="{Binding PauseCommand}" IsEnabled="{Binding CanPause}" />
+                    <Button Content="Stop" Command="{Binding StopCommand}" IsEnabled="{Binding CanStop}" />
+                    <CheckBox Margin="8,0,0,0" Content="Loop" IsChecked="{Binding LoopOn}" />
+                  </StackPanel>
+                  <Grid ColumnDefinitions="*,Auto">
+                    <Slider Minimum="0" Maximum="{Binding Duration}" Value="{Binding Position}"
+                            AutomationProperties.Name="Position" />
+                    <TextBlock Grid.Column="1" Classes="muted small" Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding PositionText}" />
+                  </Grid>
+                  <Grid ColumnDefinitions="Auto,*">
+                    <TextBlock Classes="muted" VerticalAlignment="Center" Margin="0,0,12,0" Text="Volume" />
+                    <Slider Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Volume}" AutomationProperties.Name="Volume" />
+                  </Grid>
+                  <TextBlock Classes="muted" IsVisible="{Binding IsDecoding}" Text="Decoding the sound..." />
+                  <TextBlock Classes="error" TextWrapping="Wrap" Text="{Binding PlayerMessage}"
+                             IsVisible="{Binding PlayerMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding HasReplacedNote}" Text="{Binding ReplacedNote}" />
+                </StackPanel>
+
+                <!-- Export -->
+                <StackPanel Spacing="10">
+                  <TextBlock Classes="label" Text="EXPORT" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap"
+                             Text="Ogg Vorbis sounds are saved as .ogg, a looping one as one chained file as the game has it. MS ADPCM sounds are saved as 16-bit PCM .wav." />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Export this sound" Command="{Binding ExportSelectedCommand}" IsEnabled="{Binding CanExport}" />
+                    <Button Content="Export all listed" Command="{Binding ExportAllCommand}" IsEnabled="{Binding CanExportAll}" />
+                  </StackPanel>
+                </StackPanel>
+
+                <!-- Replace -->
+                <StackPanel Spacing="10">
+                  <TextBlock Classes="label" Text="REPLACE" />
+                  <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding NoEditsMod}"
+                             Text="Choose or make an edits mod in the bar above to replace sounds." />
+                  <StackPanel Spacing="10" IsVisible="{Binding HasEditsMod}">
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding ReplaceKinds}" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap"
+                               Text="The new file is written into the edits mod at once, at the original's path. The game uses it after a restart." />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Button Content="Replace..." Command="{Binding ReplaceCommand}" IsEnabled="{Binding CanReplace}" />
+                      <Button Content="Revert" Command="{Binding RevertCommand}" IsEnabled="{Binding CanRevert}" />
+                    </StackPanel>
+                  </StackPanel>
+                </StackPanel>
+
+                <TextBlock TextWrapping="Wrap" Text="{Binding Status}" Classes.error="{Binding StatusIsError}"
+                           IsVisible="{Binding Status, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              </StackPanel>
+            </ScrollViewer>
+          </Panel>
+        </Border>
+      </Grid>
+    </Panel>
+  </Grid>
+</UserControl>

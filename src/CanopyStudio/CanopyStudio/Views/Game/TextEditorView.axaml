@@ -1,0 +1,83 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels.Game"
+             x:Class="CanopyStudio.Views.Game.TextEditorView"
+             x:DataType="vm:TextEditorViewModel">
+  <DockPanel Margin="14,10,14,10">
+    <!-- The entry -->
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <Button Classes="small" Content="Revert all" Command="{Binding RevertAllCommand}"
+                ToolTip.Tip="Take every language of this text out of the edits mod, back to the game's own" />
+        <Button Classes="small" Content="Open in Tables" Command="{Binding OpenInTablesCommand}" />
+      </StackPanel>
+      <StackPanel Spacing="2">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Classes="h3" Text="{Binding Title}" />
+          <Border Classes="badge" IsVisible="{Binding IsChanged}">
+            <TextBlock Classes="caption warn" Text="CHANGED" />
+          </Border>
+        </StackPanel>
+        <TextBlock Classes="small muted mono" Text="{Binding Subtitle}" />
+      </StackPanel>
+    </DockPanel>
+
+    <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,8">
+      <TextBlock Classes="small warn" TextWrapping="Wrap" IsVisible="{Binding !HasMod}" Text="{Binding NoModText}" />
+      <TextBlock Classes="small faint" TextWrapping="Wrap"
+                 Text="canopy.ini holds each text on one line: no line breaks, and no spaces at either end. A text set back to the game's own is taken out of the edits mod." />
+      <TextBlock Classes="small error" TextWrapping="Wrap" IsVisible="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}"
+                 Text="{Binding Problem}" />
+    </StackPanel>
+
+    <!-- One box per language -->
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <ItemsControl ItemsSource="{Binding Languages}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="10" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:TextLanguageEditor">
+            <Grid ColumnDefinitions="150,*,12,*" RowDefinitions="Auto,Auto">
+              <StackPanel Spacing="4" Margin="0,4,8,0">
+                <TextBlock Classes="label" Text="{Binding Name}" />
+                <TextBlock Classes="caption warn" IsVisible="{Binding IsPatched}" Text="Changed" />
+              </StackPanel>
+
+              <Border Grid.Column="1" Classes="badge" Padding="8,6" VerticalAlignment="Stretch">
+                <SelectableTextBlock TextWrapping="Wrap"
+                                     Classes.muted="{Binding VanillaEmpty}"
+                                     ToolTip.Tip="The game's own text"
+                                     Text="{Binding VanillaShown}" />
+              </Border>
+
+              <StackPanel Grid.Column="3" Spacing="6">
+                <TextBox AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         MinHeight="56"
+                         AutomationProperties.Name="{Binding Name}"
+                         IsReadOnly="{Binding IsReadOnly}"
+                         Text="{Binding Draft}" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Button Classes="small" Content="Apply" Command="{Binding ApplyCommand}"
+                          ToolTip.Tip="Write this text into the edits mod" />
+                  <Button Classes="small" Content="Undo typing" Command="{Binding ResetCommand}" IsVisible="{Binding IsDirty}" />
+                  <Button Classes="small" Content="Revert" Command="{Binding RevertCommand}"
+                          ToolTip.Tip="Take this text out of the edits mod, back to the game's own" />
+                  <Button Classes="small" Content="Open the line in Create" Command="{Binding OpenLineCommand}" IsVisible="{Binding HasLine}" />
+                </StackPanel>
+              </StackPanel>
+
+              <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Spacing="2" Margin="0,4,0,0">
+                <TextBlock Classes="small error" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" Text="{Binding Problem}" />
+                <TextBlock Classes="small muted" TextWrapping="Wrap" IsVisible="{Binding HasBlock}" Text="{Binding Blocked}" />
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

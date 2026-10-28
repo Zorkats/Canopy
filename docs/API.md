@@ -1,8 +1,8 @@
 # Canopy API reference
 
-Version 3. Everything a mod can call, and the rules for calling it. The API is one C header, [sdk/canopy_api.h](../sdk/canopy_api.h). It works from C and C++.
+Version 4. Everything a mod can call, and the rules for calling it. The API is one C header, [sdk/canopy_api.h](../sdk/canopy_api.h). It works from C and C++.
 
-New to modding the game? Start with the walkthrough in [MODDING.md](MODDING.md). This page is for looking things up.
+New to modding the game? Start with the walkthrough in [MODDING.md](MODDING.md). This page is for looking things up. Lua mods, which need no DLL, have their own page: [LUA.md](LUA.md).
 
 ## Contents
 
@@ -22,9 +22,11 @@ New to modding the game? Start with the walkthrough in [MODDING.md](MODDING.md).
   [Popups](#popups) ·
   [Hooks](#hooks) ·
   [Input](#input) ·
-  [Interfaces](#interfaces)
+  [Interfaces](#interfaces) ·
+  [Per-save data](#per-save-data)
 - [Keys and limits](#keys-and-limits)
 - [Settings files](#settings-files)
+- [Per-save data files](#per-save-data-files)
 - [Pad ids](#pad-ids)
 - [Known limitations](#known-limitations)
 
@@ -37,7 +39,7 @@ New to modding the game? Start with the walkthrough in [MODDING.md](MODDING.md).
 - [ ] Declare a [manifest](#manifest) when another mod must depend on yours, or yours on another. A mod without one loads as before.
 - [ ] Check what [GetInterface](#getinterface) returns for `NULL` before you use it.
 - [ ] Read settings when you use them. The player can change them at any time.
-- [ ] Never rename a mod key or a setting key after release.
+- [ ] Never rename a mod key, a setting key or a per-save key after release.
 - [ ] Check a game function's bytes before you hook it, or find it with [FindPattern](#findpattern).
 - [ ] Every failure is logged to `Canopy.log` with the reason. Check it first.
 
@@ -55,7 +57,7 @@ CANOPY_MOD_EXPORT bool CanopyModInit(const CanopyApi* api);
 |---|---|
 | `api` | The function table. Valid until the game exits, so you can keep the pointer. |
 | Returns | `true` to stay loaded. `false` to be unloaded: the loader removes your hooks, callbacks, mod and settings, then frees your DLL. |
-| Thread | A loader thread, while the game is still starting. The title screen does not exist yet. |
+| Thread | The game's main thread, as the game initializes, before it reads any file. The title screen does not exist yet. On a game build the loader does not recognize, a loader thread that runs while the game starts instead. |
 | May call | Every API function. Registration functions only work here. |
 | Must not | Call game functions, or wait on anything the game thread does. |
 
@@ -133,7 +135,7 @@ The loader skips a mod, and logs why, when:
 | `Mod X.dll skipped, its manifest has a dependency without an id.` | A `CanopyDependency` has a `NULL` `id`. | Fill in every `id`. |
 | `Mod X.dll skipped, a dependency id is not valid.` | A dependency's id breaks the id rules. | Use the id rules above. |
 | `Mod X.dll skipped, it depends on itself.` | A dependency names the mod's own id. | Remove that dependency. |
-| `Mod X.dll skipped, it needs API version 4, and this loader has version 3.` | `minApi` is above the loader's version. | Use a newer loader, or lower `minApi` if the mod really runs on this one. |
+| `Mod X.dll skipped, it needs API version 5, and this loader has version 4.` | `minApi` is above the loader's version. | Use a newer loader, or lower `minApi` if the mod really runs on this one. |
 | `Mod X.dll skipped, its id Y is already used by Z.dll.` | An earlier mod in file name order has the same id. | Pick an id of your own. |
 | `Mod X.dll skipped, it needs Y, which is not installed.` | A required dependency is not in `mods`. | Install it, or make the dependency optional. |
 | `Mod X.dll skipped, it needs Y, which was skipped.` | A required dependency was skipped, and its own line says why. | Fix that mod first. |
@@ -159,13 +161,14 @@ A loader older than version 3 does not read manifests. It starts the mod in file
 
 | Function | When | Thread |
 |---|---|---|
-| `RegisterMod`, `AddToggle`, `AddChoice`, `AddBinding`, `AddButton` | During `CanopyModInit` only | Loader |
+| `RegisterMod`, `AddToggle`, `AddChoice`, `AddSlider`, `AddBinding`, `AddButton` | During `CanopyModInit` only | Loader |
 | `ProvideInterface` | During `CanopyModInit` only | Loader |
 | `OnFrame`, `OnExit`, `OnEvent` | During `CanopyModInit`, or later | Loader, or the game thread later |
 | `CreateHook`, `RemoveHook` | During `CanopyModInit`, or later | Loader, or the game thread later |
 | `PlayerInField`, `Pressed`, `Held`, `WheelSteps`, `ShowToast`, `ShowYesNo` | After startup | Game thread only |
 | `GameBase`, `GameBuild`, `FindPattern`, `Language`, `GameFocused`, `Log`, `GetSetting`, `SettingsFile`, `PadName` | Any time | Any thread |
 | `GetInterface`, `ModVersion` | While the loader is still starting mods, or after startup | Loader, or any thread after startup |
+| `SetSaveInt`, `GetSaveInt`, `SetSaveString`, `GetSaveString`, `HasSaveValue`, `DeleteSaveValue` | Any time | Any thread |
 
 "The game thread" means inside a frame, event, button, answer or exit callback, or inside a detour of a function the game runs on its main thread. `ShowToast` and `ShowYesNo` check it, and refuse with a log line anywhere else.
 
@@ -174,7 +177,7 @@ Every callback the loader calls (frame, event, button, answer and exit) runs on 
 Lifetimes:
 
 - **Strings you pass** (keys, `CanopyText`) are copied. They can be temporary.
-- **Strings you get back** from `SettingsFile` and `PadName` stay valid until the game exits.
+- **Strings you get back** from `SettingsFile` and `PadName` stay valid until the game exits. `GetSaveString` copies into your buffer.
 - **Your DLL** stays loaded until the game exits, unless `CanopyModInit` returns `false`. There is no unload or reload while the game runs.
 - **Tables you provide** with [ProvideInterface](#provideinterface) stay valid until the game exits. The loader removes them when your `CanopyModInit` returns `false`, or when it backs out of a failed start.
 
@@ -196,8 +199,9 @@ Pick one of two approaches:
 | 1 | Everything up to `PadName`. |
 | 2 | [OnExit](#onexit), [AddButton](#addbutton), [ShowToast](#showtoast), [ShowYesNo](#showyesno), [OnEvent](#onevent), [FindPattern](#findpattern) and [GameBuild](#gamebuild). Version 2 loaders also chain hooks, guard callbacks against crashes, report every key press on its own, and raise the limits; mods built for version 1 get these without changes. |
 | 3 | [ProvideInterface](#provideinterface), [GetInterface](#getinterface) and [ModVersion](#modversion), and the [manifest](#manifest), with dependencies and a load order. A version 2 loader does not read manifests, and it starts every mod in file name order. |
+| 4 | [AddSlider](#addslider), and [per-save data](#per-save-data): `SetSaveInt`, `GetSaveInt`, `SetSaveString`, `GetSaveString`, `HasSaveValue` and `DeleteSaveValue`. |
 
-Functions are only ever appended, so a loader that has a function has every function before it in the table. A mod that uses the whole version 3 table can check for its last entry once: `CANOPY_HAS(api, ModVersion)`.
+Functions are only ever appended, so a loader that has a function has every function before it in the table. A mod that uses the whole version 4 table can check for its last entry once: `CANOPY_HAS(api, DeleteSaveValue)`.
 
 ## Types
 
@@ -278,7 +282,7 @@ uint32_t GameBuild(void);
 
 **Version 2.** An id of the running `village.exe` build: the `TimeDateStamp` in its PE header, which changes with every build the developer ships. Any thread.
 
-Compare it with the build you reverse engineered, and log or refuse when it differs. The Steam build the loader supports, Ver. 1.30, is `0x6ABD400D`.
+Compare it with the build you reverse engineered, and log or refuse when it differs. The current Steam build, Ver. 1.30, is `0x6ABD400D`.
 
 ```c
 if (api->GameBuild() != 0x6ABD400D) {
@@ -403,6 +407,38 @@ Adds a key binding. The row shows the label, with the bound key's glyph centered
 
 A binding holds one pad of one device. For a key **and** a controller button, add two bindings and check both. It fails as `AddToggle` does, and also when `device` is invalid or `defaultPad` cannot be bound. A saved value the device does not accept falls back to `defaultPad`.
 
+### AddSlider
+
+```c
+CanopySetting AddSlider(CanopyMod mod, const char* key, const CanopyText* label,
+                     const CanopyText* help, int32_t min, int32_t max,
+                     int32_t step, int32_t defaultValue);
+```
+
+**Version 4.** Adds a setting that picks a whole number from `min` to `max` in steps of `step`. Its value is the number itself, such as `25`, not its position.
+
+| | |
+|---|---|
+| `min`, `max` | The lowest and highest numbers. `min` must be below `max`. Negative numbers work. |
+| `step` | 1 or more. `max - min` must be a whole number of steps. |
+| `defaultValue` | One of the numbers: `min` plus a whole number of steps. |
+
+A step of 1 shows the game's own number selector. A larger step shows the numbers as values the row cycles through, like a choice. Either way the range holds at most 256 numbers: `(max - min) / step + 1`.
+
+Everything else, and every way it fails, is as for `AddToggle`. It also fails when the numbers do not fit, with one of these reasons:
+
+| Log line | Cause |
+|---|---|
+| `Setting ExampleMod.X not registered, its step must be 1 or more.` | `step` is 0 or negative. |
+| `Setting ExampleMod.X not registered, its min must be below its max.` | `min` is `max` or above it. |
+| `Setting ExampleMod.X not registered, its max must be min plus a whole number of steps.` | `max - min` does not divide by `step`. |
+| `Setting ExampleMod.X not registered, its range holds more than 256 values.` | Use a larger step or a smaller range. |
+| `Setting ExampleMod.X not registered, its default is not one of its values.` | `defaultValue` is outside the range, or between two steps. |
+
+A saved number outside the range is clamped to it, then moved to the nearest step, a tie going up.
+
+> **Keep the range when you update.** The saved value is the number. A new range or step moves every player's saved number to the nearest one the new range allows.
+
 ### AddButton
 
 ```c
@@ -430,7 +466,7 @@ A crash in the callback is caught like a frame callback's; see [OnFrame](#onfram
 int32_t GetSetting(CanopySetting setting, int32_t fallback);
 ```
 
-The setting's current value: `0` or `1` for a toggle, the index for a choice, the pad for a binding, `0` for a button. Returns `fallback` when `setting` is not a valid handle, for example `CANOPY_NO_SETTING` from a failed registration. Any thread.
+The setting's current value: `0` or `1` for a toggle, the index for a choice, the number for a slider, the pad for a binding, `0` for a button. Returns `fallback` when `setting` is not a valid handle, for example `CANOPY_NO_SETTING` from a failed registration. Any thread.
 
 Read it each time you use it, not once at startup: the player changes values while the game runs.
 
@@ -747,9 +783,100 @@ if (api->ModVersion("VillageQoL") >= CANOPY_VERSION(1, 0, 0)) {
 
 Call it from `CanopyModInit` while the loader is still starting mods, or from any thread after that. Use it for an optional dependency, to see which version of it loaded.
 
+## Per-save data
+
+**Version 4.** Values a mod keeps with the save being played: a counter, a choice the player made, a stage of a quest of its own. The game's save data never holds them. The loader keeps them in memory and writes them to a [file of its own](#per-save-data-files) for each save slot, one section per mod.
+
+| When | What happens to the values |
+|---|---|
+| The game saves to slot N, and the save succeeds | Every mod's values are written to `mods\CanopyData\slot<N>.ini`. With no values at all, the slot's old file is deleted. |
+| A save in slot N finishes loading | The values become the ones in that file, or none when there is no file. This happens before `CANOPY_EVENT_SAVE_LOADED`. |
+| The game deletes slot N | Its file is deleted. The values in memory stay. |
+| The title screen appears, at startup or after leaving a game | Every value is dropped, so a new game starts with none. |
+
+A failed save, load or delete changes nothing. The game's options and key config go through the same save code with a smaller buffer, and never touch these files. VillageQoL's quick save uses the game's own save code too: a quick save writes its slot's file, and a quick load reads it before VillageQoL deletes that save, and the file with it.
+
+A change takes effect in memory at once, and reaches the file only when the player saves, like the game's own progress. Every function here works on any thread, at any time; values only mean something while a game runs.
+
+A per-save key follows the [setting key rules](#keys-and-limits), case-insensitive, and each mod has its own. Ints and strings share the keys: an int is stored as its digits.
+
+### SetSaveInt
+
+```c
+bool SetSaveInt(CanopyMod mod, const char* key, int32_t value);
+```
+
+Stores `value` under `key`, replacing what was there. Returns `false` when it cannot, and logs the reason the first time; see the table below.
+
+### GetSaveInt
+
+```c
+int32_t GetSaveInt(CanopyMod mod, const char* key, int32_t fallback);
+```
+
+The number stored under `key`. Returns `fallback` when there is none, or when the value is not a whole number that fits an `int32_t`.
+
+### SetSaveString
+
+```c
+bool SetSaveString(CanopyMod mod, const char* key, const char* value);
+```
+
+Stores `value`, one line of UTF-8 text, under `key`. Up to 1024 bytes, with no line breaks or other control characters. An empty string is a value. Returns `false` when it cannot, and logs the reason the first time.
+
+### GetSaveString
+
+```c
+bool GetSaveString(CanopyMod mod, const char* key, char* buffer, uint32_t size);
+```
+
+Copies the text stored under `key` into `buffer`, which holds `size` bytes. A longer value is cut to fit, at a UTF-8 character boundary, and the copy is always terminated: a buffer of 1025 bytes holds any value. Returns `false`, and writes `""`, when there is none. An int reads as its digits.
+
+### HasSaveValue
+
+```c
+bool HasSaveValue(CanopyMod mod, const char* key);
+```
+
+`true` when `key` has a value. Use it to tell a save that never had the value from one where it is `0`.
+
+### DeleteSaveValue
+
+```c
+bool DeleteSaveValue(CanopyMod mod, const char* key);
+```
+
+Removes the value under `key`. Returns `false` when there was none. The next save writes the file without it.
+
+### Per-save log lines
+
+A refused value is logged once for each key and reason:
+
+| Log line | Cause |
+|---|---|
+| `[ExampleMod] Per-save value X rejected, its key must be 1 to 32 letters, digits, '_' or '-'.` | A bad key. |
+| `[ExampleMod] Per-save value X rejected, it needs a value.` | `SetSaveString` got `NULL`. |
+| `[ExampleMod] Per-save value X rejected, its value is longer than 1024 bytes.` | Too long. |
+| `[ExampleMod] Per-save value X rejected, its value has a line break or another control character.` | Keep it to one line. |
+| `[ExampleMod] Per-save value X rejected, the mod already keeps 1024 values.` | Delete some first. |
+| `[ExampleMod] Per-save value X rejected, per-save data is not available on this game build.` | A game update changed the save code, or the build is not one Canopy has checked; the log said `Per-save data disabled.` at startup. |
+| `[unknown mod] Per-save value X rejected, it needs a registered mod.` | `mod` is not a valid handle. |
+
+The loader logs what it does with the files:
+
+| Log line | Meaning |
+|---|---|
+| `Per-save data: wrote slot 3, 2 mods.` | A save wrote the file. |
+| `Per-save data: slot 3 saved with no values, its old file was deleted.` | No mod kept a value, so the slot's old file went. |
+| `Per-save data: slot 3 could not be written, error 5.` | A Windows error. The old file stays; the game's save is fine. |
+| `Per-save data: loaded slot 3, 2 mods.` | A load read the file. |
+| `Per-save data: slot 3 has none.` | The slot has no file, so the values start empty. |
+| `Per-save data: slot 3 could not be read, starting with none.` | The file is locked or too large. |
+| `Per-save data: deleted slot 3.` | The game deleted the slot. |
+
 ## Keys and limits
 
-A **key** is a mod key or a setting key. Keys name files and INI entries, so they keep to safe characters:
+A **key** is a mod key, a setting key or a per-save key. Keys name files and INI entries, so they keep to safe characters:
 
 | Rule | Value |
 |---|---|
@@ -765,6 +892,9 @@ Limits shared by every installed mod:
 | Mods | 64 |
 | Settings, all mods together, buttons included | 256 |
 | Choices per choice setting | 2 to 8 |
+| Numbers per slider | 2 to 256 |
+| Per-save values per mod | 1024 |
+| Per-save value length | 1024 bytes |
 
 Keep binding labels short, since each language's label has to fit on one row beside the glyph.
 
@@ -778,17 +908,33 @@ FieldMessages=1
 MessageStyle=0
 PingKey=131
 PingButton=12
+PingValue=10
 ```
 
 | When | What happens |
 |---|---|
 | A setting is registered and the file has no value for it | The default is written to the file, so the file always lists every setting. |
-| A setting is registered and the file has a value | The file's value is used. A value out of range (a missing choice, an unbindable pad) falls back to the default. |
+| A setting is registered and the file has a value | The file's value is used. A value out of range (a missing choice, an unbindable pad) falls back to the default. A slider's number is clamped to its range instead, then moved to the nearest step. |
 | The player changes a setting | The new value is written at once. |
 | A mod stops registering a setting | Its old line stays in the file, unused. |
 | A button is registered | Nothing: buttons store no value. |
 
 Players may edit the file while the game is closed.
+
+## Per-save data files
+
+The loader keeps each save slot's [per-save data](#per-save-data) in `mods\CanopyData\slot<N>.ini`, next to the loader's other files and never in the game's save folder, with one section per mod key:
+
+```ini
+; Canopy per-save mod data for save slot 3.
+
+[ExampleMod]
+PingTotal=40
+```
+
+Each save to the slot rewrites the whole file. The loader writes a temporary file and then swaps it in, so a failed write leaves the last good file. Sections of mods that are no longer installed are kept, and written back by the next save of a game that loaded them.
+
+The files follow the slot, not the save: copying or moving a save outside the game leaves its values behind. Deleting the folder drops every mod's per-save data and leaves the game's saves unchanged.
 
 ## Pad ids
 
@@ -859,7 +1005,9 @@ The wheel is not a pad. Read it with [WheelSteps](#wheelsteps).
 | Hook detours are not crash guarded; only the loader's callbacks are. | Keep detours small, and guard risky memory reads yourself, for example with `__try` / `__except` in a function that holds no C++ objects. |
 | A mod whose detour skips its `original` also skips every detour after it. | Call `original` unless blocking the game's code is the point. List the functions you hook in your mod's description. |
 | No unload or reload while the game runs. | Restart the game to test a new build. |
-| Settings are toggles, choices, bindings and buttons only. There are no sliders or text fields. | Use a choice with a few preset values. |
+| Settings are toggles, choices, sliders, bindings and buttons only. There are no text fields. | Use a choice with a few preset values. |
+| Per-save values set at the title screen carry into a new game, and values set in `CanopyModInit` are dropped when the title appears. | Set them while a game runs: after `CANOPY_EVENT_SAVE_LOADED`, or in the field. |
+| Per-save data follows the save slot. A save copied outside the game, for example to another computer, arrives without its values. | Copy `mods\CanopyData` along with the saves. |
 | Toasts do not show on the title screen. | Show them once a game runs: after `CANOPY_EVENT_SAVE_LOADED` or the first `CANOPY_EVENT_FIELD_ENTER`. |
 | A Yes/No popup opens only over the field or the Mod Settings page, one at a time. | Ask from a button row, or while the player walks. Try again later when another popup is open. |
 | The **Return to Title** row in the options menu belongs to the loader. | Nothing; it is always there in game. |

@@ -1,0 +1,33 @@
+// The version Windows shows in the DLL's properties. Canopy Studio reads
+// ProductName and ProductVersion to tell Canopy from another dinput8.dll and
+// to offer a newer release. CANOPY_RELEASE and CANOPY_RELEASE_NUMBERS come
+// from CMakeLists.txt.
+#include <winver.h>
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION CANOPY_RELEASE_NUMBERS
+PRODUCTVERSION CANOPY_RELEASE_NUMBERS
+FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+FILEFLAGS 0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_DLL
+FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "Zorkats"
+            VALUE "FileDescription", "Canopy mod loader for Village in the Shade"
+            VALUE "FileVersion", CANOPY_RELEASE
+            VALUE "InternalName", "Canopy"
+            VALUE "OriginalFilename", "dinput8.dll"
+            VALUE "ProductName", "Canopy"
+            VALUE "ProductVersion", CANOPY_RELEASE
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

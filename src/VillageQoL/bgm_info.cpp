@@ -139,7 +139,7 @@ void* __fastcall Detour_MakeBgmParam(void* soundManager, void* outParam, uint64_
 }  // namespace
 
 bool Install() {
-    if (!MatchesSignatures(retail::kBgmInfoSignatures)) {
+    if (!RequirementsMet(retail::kBgmInfoRequirements)) {
         return false;
     }
     g_GetBgmTable = GameFunction<GetBgmTableFn>(retail::kGetBgmTable);

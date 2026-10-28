@@ -3,6 +3,8 @@
 
 #include <windows.h>
 
+#include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -11,8 +13,8 @@
 namespace mod_config {
 namespace {
 
-// Marks a key the file does not have yet.
-constexpr int kMissing = -1;
+// Marks a key the file does not have yet. No number reads as it.
+constexpr const char* kMissing = "?";
 
 // The options menu reads both lists with no lock, so the storage never moves.
 Mod g_Mods[kMaxMods] = {};
@@ -81,6 +83,45 @@ const char* RejectSetting(int mod, const char* key) {
     return nullptr;
 }
 
+// True when value is one of min, min + step, and so on up to max.
+bool OnSteps(int32_t min, int32_t max, int32_t step, int32_t value) {
+    return value >= min && value <= max && (static_cast<int64_t>(value) - min) % step == 0;
+}
+
+// Why a slider's range cannot be used, or null when it can. 64-bit math,
+// so no range overflows.
+const char* RejectSlider(int32_t min, int32_t max, int32_t step, int32_t defaultValue) {
+    if (step < 1) {
+        return "its step must be 1 or more";
+    }
+    if (min >= max) {
+        return "its min must be below its max";
+    }
+    const int64_t span = static_cast<int64_t>(max) - min;
+    if (span % step != 0) {
+        return "its max must be min plus a whole number of steps";
+    }
+    if (span / step + 1 > kMaxSliderValues) {
+        return "its range holds more than 256 values";
+    }
+    if (!OnSteps(min, max, step, defaultValue)) {
+        return "its default is not one of its values";
+    }
+    return nullptr;
+}
+
+// The number stored under key, false when the file has none. It reads the
+// text, since a slider may store any number, -1 included.
+bool ReadStored(int mod, const char* key, int32_t& stored) {
+    char text[32] = {};
+    GetPrivateProfileStringA(g_Mods[mod].key, key, kMissing, text, sizeof(text), g_Files[mod].c_str());
+    if (std::strcmp(text, kMissing) == 0) {
+        return false;
+    }
+    stored = static_cast<int32_t>(std::strtol(text, nullptr, 10));
+    return true;
+}
+
 // Stores a new setting with its file value, or defaultValue when the file has
 // none. read checks a stored value. Returns its handle.
 template <typename Read>
@@ -99,10 +140,11 @@ int AddSetting(int mod, const char* key, const Text& label, const Text& help, Ki
     setting.help = help;
     setting.choices = choices;
     setting.choiceCount = choiceCount;
-    const int stored = static_cast<int>(GetPrivateProfileIntA(g_Mods[mod].key, key, kMissing, g_Files[mod].c_str()));
-    setting.value = stored == kMissing ? defaultValue : read(stored, defaultValue);
+    int32_t stored = 0;
+    const bool found = ReadStored(mod, key, stored);
+    setting.value = found ? read(stored, defaultValue) : defaultValue;
     // A new key is written right away, so the file lists every setting.
-    if (stored == kMissing) {
+    if (!found) {
         Save(setting);
     }
     return static_cast<int>(g_Count++);
@@ -166,6 +208,30 @@ int AddChoice(
     );
 }
 
+int AddSlider(
+    int mod, const char* key, const Text& label, const Text& help, int32_t min, int32_t max, int32_t step,
+    int32_t defaultValue
+) {
+    if (const char* reason = RejectSlider(min, max, step, defaultValue)) {
+        core::Log(SettingName(mod, key) + " not registered, " + reason + ".");
+        return kNoSetting;
+    }
+    const int setting = AddSetting(
+        mod, key, label, help, Kind::Slider, input::Device::KeyboardMouse, defaultValue,
+        [min, max, step](int stored, int32_t) {
+            // Clamped first, so the nearest step is never past max.
+            const int64_t clamped = std::clamp<int64_t>(stored, min, max);
+            return static_cast<int32_t>(min + (clamped - min + step / 2) / step * step);
+        }
+    );
+    if (setting != kNoSetting) {
+        g_Settings[setting].min = min;
+        g_Settings[setting].max = max;
+        g_Settings[setting].step = step;
+    }
+    return setting;
+}
+
 int AddButton(int mod, const char* key, const Text& label) {
     if (const char* reason = RejectSetting(mod, key)) {
         core::Log(SettingName(mod, key) + " not registered, " + reason + ".");
@@ -201,6 +267,10 @@ int32_t Choice(int setting, int32_t fallback) {
 
 int32_t Value(int setting, int32_t fallback) {
     return ValidSetting(setting) ? g_Settings[setting].value : fallback;
+}
+
+bool KeyValid(const char* key) {
+    return ValidKey(key);
 }
 
 const char* SettingsFile(int mod) {
@@ -251,6 +321,9 @@ void SetValue(size_t index, int32_t value) {
         return;
     }
     const Setting& setting = g_Settings[index];
+    if (setting.kind == Kind::Slider && !OnSteps(setting.min, setting.max, setting.step, value)) {
+        return;
+    }
     g_Settings[index].value = value;
     Save(setting);
     std::string shown = std::to_string(value);

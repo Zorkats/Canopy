@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels"
+             x:Class="CanopyStudio.Views.ComingAreaView"
+             x:DataType="vm:ComingAreaViewModel">
+  <ScrollViewer>
+    <StackPanel Margin="40,36" MaxWidth="980" HorizontalAlignment="Left" Spacing="6">
+      <TextBlock Classes="h1" Text="{Binding Heading}" />
+      <TextBlock Classes="muted"
+                 MaxWidth="620"
+                 HorizontalAlignment="Left"
+                 TextWrapping="Wrap"
+                 Text="{Binding Intro}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

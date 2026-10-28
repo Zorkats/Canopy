@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pick="using:CanopyStudio.Controls.Pickers"
+             x:Class="CanopyStudio.Controls.Pickers.VanillaPickerButton">
+  <!-- A form field: the picked entry, and the picker in a flyout on click.
+       Clear, shown while an id is picked, sets it to none. -->
+  <Grid ColumnDefinitions="*,Auto">
+    <Button x:Name="Field"
+            x:DataType="pick:VanillaPickerButtonViewModel"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch"
+            Padding="6,4,10,4"
+            MinHeight="42">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <pick:PickerIcon IsVisible="{Binding HasEntry}"
+                         Margin="0,0,8,0"
+                         IconId="{Binding IconId}"
+                         Assets="{Binding Assets}" />
+        <TextBlock Grid.Column="1"
+                   Margin="4,0,8,0"
+                   VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis"
+                   Classes.muted="{Binding IsNameMuted}"
+                   Text="{Binding NameText}" />
+        <TextBlock Grid.Column="2"
+                   Classes="mono muted"
+                   VerticalAlignment="Center"
+                   Text="{Binding IdText}" />
+      </Grid>
+    </Button>
+    <Button x:Name="ClearButton"
+            x:DataType="pick:VanillaPickerButtonViewModel"
+            Grid.Column="1"
+            Classes="small"
+            Margin="6,0,0,0"
+            VerticalAlignment="Center"
+            Content="Clear"
+            ToolTip.Tip="Remove the id"
+            AutomationProperties.Name="Clear"
+            IsVisible="{Binding HasSelection}" />
+  </Grid>
+</UserControl>

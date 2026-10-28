@@ -86,7 +86,7 @@ void OpenSettings() {
 }  // namespace
 
 bool Install() {
-    if (!MatchesSignatures(retail::kSettingsHotkeySignatures)) {
+    if (!RequirementsMet(retail::kSettingsHotkeyRequirements)) {
         return false;
     }
     g_MainMenuCtor = GameFunction<MainMenuCtorFn>(retail::kMainMenuCtor);

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Everything Canopy Studio knows without a window: canopy_core's calls
+       and their JSON, finding the game, and the settings file. -->
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!-- Sound (decision D4): NVorbis decodes the game's Ogg Vorbis, SDL2 plays
+       it on Windows and Linux alike, and Ultz.Native.SDL carries the SDL2
+       library for both. -->
+  <ItemGroup>
+    <PackageReference Include="NVorbis" Version="0.10.5" />
+    <PackageReference Include="Silk.NET.SDL" Version="2.23.0" />
+    <PackageReference Include="Ultz.Native.SDL" Version="2.32.10" />
+  </ItemGroup>
+
+  <!-- The names the Lua editor completes, written by
+       _work/scripts/lua_api_catalog.py from docs/LUA.md and
+       src/Canopy/lua_commands.h. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Lua/lua_api_catalog.json" LogicalName="lua_api_catalog.json" />
+  </ItemGroup>
+
+  <!-- canopy_core for the platform built for, canopy_core.dll for Windows and
+       libcanopy_core.so for Linux, copied next to every project that
+       references this one. It comes from the CMake release build, or from
+       the folder CanopyCoreDir names (-p:CanopyCoreDir=<folder>), as a
+       release job passes. A relative folder counts from this project's
+       folder, so pass a full path. -->
+  <PropertyGroup>
+    <CanopyCoreDir Condition="'$(CanopyCoreDir)' == ''">$(MSBuildThisFileDirectory)../../../build/src/CanopyTools</CanopyCoreDir>
+    <CanopyCoreFile Condition="$(RuntimeIdentifier.StartsWith('linux'))">libcanopy_core.so</CanopyCoreFile>
+    <CanopyCoreFile Condition="'$(CanopyCoreFile)' == ''">canopy_core.dll</CanopyCoreFile>
+    <!-- The full folder, as the platform writes it, for the copy and the
+         message below alike. -->
+    <CanopyCoreShown>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(CanopyCoreDir)'))</CanopyCoreShown>
+    <CanopyCoreLibrary>$([System.IO.Path]::Combine('$(CanopyCoreShown)', '$(CanopyCoreFile)'))</CanopyCoreLibrary>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(CanopyCoreLibrary)" Link="$(CanopyCoreFile)" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(CanopyCoreLibrary)')" />
+  </ItemGroup>
+  <Target Name="WarnMissingCanopyCore" BeforeTargets="Build" Condition="!Exists('$(CanopyCoreLibrary)')">
+    <Warning Text="$(CanopyCoreFile) is not built yet in $(CanopyCoreShown). Run the CMake release build first (cmake --build --preset release), or name the full path of the folder that holds it with -p:CanopyCoreDir=&lt;folder&gt;." />
+  </Target>
+</Project>

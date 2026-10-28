@@ -1,61 +1,25 @@
-# Builds every push and pull request. A tag such as v1.2.0 also publishes a
-# GitHub release with the player package and the SDK package.
+# Builds and tests every push to main and every pull request on Windows and Linux, with the
+# same workflows a release uses, so a change that would break a release fails here first. The
+# packages are kept as workflow artifacts named after the commit. Tagged releases come from
+# release.yml and nightlies from nightly.yml.
 name: Build
 
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  # A newer push to the same branch or pull request makes an older run pointless.
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: windows-2022
-    steps:
-      - uses: actions/checkout@v4
+  windows:
+    uses: ./.github/workflows/release-windows.yml
 
-      - name: Set up the MSVC x64 environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - name: Name the build
-        shell: pwsh
-        run: |
-          if ($env:GITHUB_REF_TYPE -eq 'tag') {
-            $version = $env:GITHUB_REF_NAME.TrimStart('v')
-          } else {
-            $version = "dev-$($env:GITHUB_SHA.Substring(0, 7))"
-          }
-          "VERSION=$version" >> $env:GITHUB_ENV
-          "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
-
-      - name: Configure
-        run: cmake --preset release
-
-      - name: Build
-        run: cmake --build --preset release
-
-      - name: Package
-        shell: pwsh
-        run: |
-          cmake --install build --component player --prefix dist/player
-          cmake --install build --component sdk --prefix dist/sdk
-          Compress-Archive -Path dist/player/* -DestinationPath "dist/VillageQoL-$env:VERSION.zip"
-          Compress-Archive -Path dist/sdk/* -DestinationPath "dist/Canopy-SDK-$env:VERSION.zip"
-
-      - name: Upload the packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: packages-${{ env.VERSION }}
-          path: dist/*.zip
-
-      - name: Publish the release
-        if: github.ref_type == 'tag'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*.zip
-          generate_release_notes: true
+  linux:
+    uses: ./.github/workflows/release-linux.yml

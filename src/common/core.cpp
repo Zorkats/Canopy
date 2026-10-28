@@ -6,12 +6,42 @@
 #pragma comment(lib, "shlwapi.lib")
 
 #include <cstdio>
+#include <iterator>
+
+#include "game_addresses.h"
+#include "platform_files.h"
 
 namespace core {
 
 uintptr_t g_ModuleBase = 0;
 
 namespace {
+
+game_addresses::Resolution g_Addresses;
+// Set once g_Addresses holds this DLL's resolution.
+std::atomic<bool> g_AddressesResolved{false};
+// Where a searched resolution came from, for the report.
+const char* g_SearchSource = "";
+// Set when force_search.txt made a checked build search, with how the search
+// differed from the checked addresses, one "name checked searched" per line.
+bool g_SearchForced = false;
+std::string g_ForcedDifferences;
+
+// What mods\CanopyData\force_search.txt asks for: a search even on a checked
+// build, of village.exe or, with the first word "loaded", of the loaded game.
+// It tries on a known build the path an unknown one takes.
+enum class ForcedSearch { None, File, Loaded };
+
+ForcedSearch ReadForcedSearch(const std::wstring& gameFolder) {
+    std::vector<uint8_t> text;
+    if (!platform::ReadWholeFile(gameFolder + L"\\mods\\CanopyData\\force_search.txt", 4096, text)) {
+        return ForcedSearch::None;
+    }
+    const std::string content(text.begin(), text.end());
+    const size_t first = content.find_first_not_of(" \t\r\n");
+    return first != std::string::npos && content.compare(first, 6, "loaded") == 0 ? ForcedSearch::Loaded
+                                                                                   : ForcedSearch::File;
+}
 
 using AllocateFn = uint8_t*(__fastcall*)(void* heap, uint64_t alignment, uint64_t size);
 using CStringAssignFn = void(__fastcall*)(void* text, const char* data, size_t length, int32_t mode);
@@ -202,4 +232,154 @@ void ReturnToTitle() {
     GameFunction<ReturnToTitleFn>(retail::kReturnToTitle)();
 }
 
+// =============================================================
+// GAME ADDRESSES
+// =============================================================
+void ResolveAddresses() {
+    if (g_AddressesResolved.load()) {
+        return;
+    }
+    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(g_ModuleBase);
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS64*>(g_ModuleBase + dos->e_lfanew);
+    const game_addresses::Image live{
+        reinterpret_cast<const uint8_t*>(g_ModuleBase), nt->OptionalHeader.SizeOfImage, g_ModuleBase
+    };
+    game_addresses::Header header;
+    game_addresses::ReadHeader(live, header);
+    wchar_t path[MAX_PATH * 4];
+    const DWORD length = GetModuleFileNameW(nullptr, path, static_cast<DWORD>(std::size(path)));
+    const bool hasPath = length > 0 && length < std::size(path);
+    const std::wstring exePath = hasPath ? std::wstring(path, length) : std::wstring();
+    const size_t slash = exePath.find_last_of(L"\\/");
+    const ForcedSearch forced =
+        slash == std::wstring::npos ? ForcedSearch::None : ReadForcedSearch(exePath.substr(0, slash));
+
+    game_addresses::Resolution checked;
+    const bool isChecked = game_addresses::LookUp(header, checked);
+    if (isChecked && forced == ForcedSearch::None) {
+        g_Addresses = std::move(checked);
+        g_AddressesResolved.store(true);
+        return;
+    }
+    // The file has the code as built: the loaded image may already hold
+    // hooks, and its pointers are relocated. It must be the running build.
+    std::vector<uint8_t> file;
+    std::vector<uint8_t> laid;
+    std::string error;
+    game_addresses::Header fileHeader;
+    const bool fromFile = forced != ForcedSearch::Loaded && hasPath &&
+                          platform::ReadWholeFile(exePath, 1ull << 30, file) &&
+                          game_addresses::LayOut(file, laid, error) &&
+                          game_addresses::ReadHeader({laid.data(), laid.size(), 0}, fileHeader) &&
+                          fileHeader.timestamp == header.timestamp && fileHeader.imageSize == header.imageSize;
+    file.clear();
+    file.shrink_to_fit();
+    if (fromFile) {
+        g_Addresses = game_addresses::Search({laid.data(), laid.size(), fileHeader.imageBase});
+        g_SearchSource = "village.exe";
+    } else {
+        g_Addresses = game_addresses::Search(live);
+        g_SearchSource = "the loaded game";
+    }
+    if (isChecked) {
+        g_SearchForced = true;
+        g_ForcedDifferences = game_addresses::Compare(checked, g_Addresses);
+    }
+    g_AddressesResolved.store(true);
+}
+
+bool AddressesResolved() {
+    return g_AddressesResolved.load();
+}
+
+bool CheckedBuild() {
+    return g_AddressesResolved.load() && g_Addresses.Verified();
+}
+
+std::string AddressReport() {
+    if (!g_AddressesResolved.load()) {
+        return "Game addresses were not resolved.";
+    }
+    const game_addresses::Resolution& resolution = g_Addresses;
+    char build[48];
+    snprintf(build, sizeof(build), "0x%08X", resolution.header.timestamp);
+    if (resolution.Verified()) {
+        return std::string("Game build ") + build + " is checked: " + resolution.build + ".";
+    }
+    using game_addresses::Status;
+    const std::string searched = std::string("Searched ") + g_SearchSource + ": " +
+                                 std::to_string(resolution.Count(Status::Found)) + " of " +
+                                 std::to_string(resolution.entries.size()) + " addresses and fields found";
+    if (!g_SearchForced) {
+        return std::string("Game build ") + build + " is not checked. " + searched +
+               ". Features that write saves stay off.";
+    }
+    std::string differences;
+    for (size_t begin = 0; begin < g_ForcedDifferences.size();) {
+        size_t end = g_ForcedDifferences.find('\n', begin);
+        if (end == std::string::npos) {
+            end = g_ForcedDifferences.size();
+        }
+        differences += (differences.empty() ? "" : "; ") + g_ForcedDifferences.substr(begin, end - begin);
+        begin = end + 1;
+    }
+    return std::string("Game build ") + build + " is checked, but mods\\CanopyData\\force_search.txt asks for a search. " +
+           searched + (differences.empty() ? ", and every one agrees with the checked addresses."
+                                           : ". It differs from the checked addresses (name, checked, searched): " +
+                                                 differences + ".") +
+           " Features that write saves stay off.";
+}
+
+uintptr_t FindAddress(const char* name) {
+    uintptr_t rva = 0;
+    return FindValue(name, rva) ? rva : 0;
+}
+
+bool FindValue(const char* name, uintptr_t& value) {
+    if (!g_AddressesResolved.load()) {
+        return false;
+    }
+    for (const game_addresses::Entry& entry : g_Addresses.entries) {
+        if (entry.name == name) {
+            value = entry.rva;
+            return entry.status == game_addresses::Status::Found;
+        }
+    }
+    return false;
+}
+
 }  // namespace core
+
+namespace retail {
+
+Address::operator uintptr_t() const {
+    constexpr uintptr_t kNotFound = ~uintptr_t{0};
+    uintptr_t rva = rva_.load(std::memory_order_relaxed);
+    if (rva == 0) {
+        // Nothing is stored before resolution, so an early read retries.
+        rva = core::FindAddress(name_);
+        if (rva != 0) {
+            rva_.store(rva, std::memory_order_relaxed);
+        } else if (core::AddressesResolved()) {
+            rva_.store(kNotFound, std::memory_order_relaxed);
+        }
+    }
+    return rva == kNotFound ? 0 : rva;
+}
+
+std::string Address::Problem() const {
+    return std::string("Game address ") + name_ + " was not found in this game build.";
+}
+
+bool Field::Met() const {
+    return Problem().empty();
+}
+
+std::string Field::Problem() const {
+    static const game_addresses::Resolution kUnresolved;
+    return game_addresses::FieldProblem(
+        core::AddressesResolved() ? core::g_Addresses : kUnresolved, name_, value_
+    );
+}
+
+}  // namespace retail

@@ -1,0 +1,97 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanopyStudio.ViewModels.Create"
+             xmlns:ae="using:AvaloniaEdit"
+             xmlns:aee="using:AvaloniaEdit.Editing"
+             x:Class="CanopyStudio.Views.Create.LuaView"
+             x:DataType="vm:LuaViewModel">
+  <UserControl.Styles>
+    <Style Selector="aee|TextArea">
+      <Setter Property="SelectionBrush" Value="{DynamicResource StudioAccent30Brush}" />
+    </Style>
+  </UserControl.Styles>
+  <!-- The mod's Lua files at the left, with a box that adds one by its
+       require name, and the open file at the right. The colours and the
+       completion list are made in code. -->
+  <Grid ColumnDefinitions="220,*">
+    <DockPanel Margin="12" LastChildFill="True">
+      <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="0,12,0,0">
+        <TextBlock Classes="label" Text="Open or add a file" />
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBox Classes="mono"
+                   AutomationProperties.Name="Lua file name"
+                   Watermark="util.text"
+                   Text="{Binding NewName, Mode=TwoWay}">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding AddFileCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+          <Button Grid.Column="1"
+                  Margin="6,0,0,0"
+                  Content="Add"
+                  ToolTip.Tip="Opens the file, or adds it when the mod has none by that name. It is written when the mod is saved."
+                  Command="{Binding AddFileCommand}" />
+        </Grid>
+        <TextBlock Classes="error small"
+                   TextWrapping="Wrap"
+                   IsVisible="{Binding HasNewNameProblem}"
+                   Text="{Binding NewNameProblem}" />
+        <TextBlock Classes="faint small"
+                   TextWrapping="Wrap"
+                   Text="The name require loads it by: util.text is lua/util/text.lua." />
+      </StackPanel>
+      <TextBlock DockPanel.Dock="Top" Classes="label" Margin="0,0,0,6" Text="Files" />
+      <Panel>
+        <ListBox AutomationProperties.Name="Lua files"
+                 ItemsSource="{Binding Files}"
+                 SelectedItem="{Binding SelectedFile, Mode=TwoWay}"
+                 IsVisible="{Binding HasFiles}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:LuaFileViewModel">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="mono small" VerticalAlignment="Center" Text="{Binding Relative}" />
+                <Ellipse Classes="marker warn"
+                         VerticalAlignment="Center"
+                         IsVisible="{Binding IsDirty}"
+                         ToolTip.Tip="Not saved yet." />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock Classes="muted small"
+                   TextWrapping="Wrap"
+                   IsVisible="{Binding !HasFiles}"
+                   Text="This mod has no Lua yet. Add main.lua below: it runs as the game starts." />
+      </Panel>
+    </DockPanel>
+
+    <Border Grid.Column="1"
+            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderThickness="1,0,0,0">
+      <DockPanel IsVisible="{Binding HasFile}">
+        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="12,10,12,8">
+          <TextBlock Classes="mono" Text="{Binding SelectedFile.Relative, FallbackValue=''}" />
+          <TextBlock Classes="faint small" Text="{Binding SelectedFile.RunsHow, FallbackValue=''}" />
+          <TextBlock Classes="faint small" Text="Ctrl+Space lists the names Canopy knows at the caret." />
+          <TextBlock Classes="error small"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding SelectedFile.IsReadOnly, FallbackValue=False}"
+                     Text="{Binding SelectedFile.Error, FallbackValue=''}" />
+          <TextBlock Classes="error small"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding SelectedFile.SizeProblem, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}"
+                     Text="{Binding SelectedFile.SizeProblem, FallbackValue=''}" />
+        </StackPanel>
+        <ae:TextEditor Name="Editor"
+                       AutomationProperties.Name="Lua text"
+                       ShowLineNumbers="True"
+                       FontFamily="{DynamicResource StudioMono}"
+                       Background="Transparent"
+                       Foreground="{DynamicResource StudioTextBrush}"
+                       LineNumbersForeground="{DynamicResource StudioFaintBrush}"
+                       HorizontalScrollBarVisibility="Auto"
+                       VerticalScrollBarVisibility="Auto" />
+      </DockPanel>
+    </Border>
+  </Grid>
+</UserControl>

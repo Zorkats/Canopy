@@ -215,7 +215,7 @@ int32_t ReadWheel() {
 }  // namespace
 
 bool Install() {
-    if (!MatchesSignatures(retail::kInputSignatures)) {
+    if (!RequirementsMet(retail::kInputRequirements)) {
         return false;
     }
     g_PadCapture = GameFunction<PadCaptureFn>(retail::kPadCapture);

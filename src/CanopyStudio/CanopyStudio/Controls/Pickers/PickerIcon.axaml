@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="CanopyStudio.Controls.Pickers.PickerIcon"
+             Width="32" Height="32">
+  <!-- The placeholder shows while the icon loads and when there is none. -->
+  <Panel>
+    <Border x:Name="Placeholder"
+            Background="{DynamicResource StudioRaisedBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{DynamicResource StudioRadius}" />
+    <Image x:Name="Picture" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="None" />
+  </Panel>
+</UserControl>

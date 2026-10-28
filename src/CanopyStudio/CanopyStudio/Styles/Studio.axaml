@@ -1,0 +1,187 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource StudioWindowBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" />
+    <Setter Property="FontFamily" Value="{DynamicResource StudioBodyFont}" />
+  </Style>
+
+  <!-- Type scale. Headings speak in the display face. -->
+  <Style Selector="TextBlock.h1, TextBlock.h2, TextBlock.h3, TextBlock.brand">
+    <Setter Property="FontFamily" Value="{DynamicResource StudioDisplayFont}" />
+    <Setter Property="FontWeight" Value="{DynamicResource StudioDisplayWeight}" />
+  </Style>
+  <Style Selector="TextBlock.h1">
+    <Setter Property="FontSize" Value="{DynamicResource StudioH1Size}" />
+  </Style>
+  <Style Selector="TextBlock.h2">
+    <Setter Property="FontSize" Value="{DynamicResource StudioH2Size}" />
+  </Style>
+  <Style Selector="TextBlock.h3">
+    <Setter Property="FontSize" Value="{DynamicResource StudioH3Size}" />
+  </Style>
+  <Style Selector="TextBlock.brand">
+    <Setter Property="FontSize" Value="{DynamicResource StudioBrandSize}" />
+  </Style>
+  <Style Selector="TextBlock.label">
+    <Setter Property="FontSize" Value="{DynamicResource StudioCaptionSize}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioFaintBrush}" />
+  </Style>
+  <Style Selector="TextBlock.muted, SelectableTextBlock.muted">
+    <Setter Property="Foreground" Value="{DynamicResource StudioMutedBrush}" />
+  </Style>
+  <Style Selector="TextBlock.faint">
+    <Setter Property="Foreground" Value="{DynamicResource StudioFaintBrush}" />
+  </Style>
+  <Style Selector="TextBlock.mono, SelectableTextBlock.mono">
+    <Setter Property="FontFamily" Value="{DynamicResource StudioMono}" />
+    <Setter Property="FontSize" Value="{DynamicResource StudioSmallSize}" />
+  </Style>
+  <Style Selector="TextBlock.small, SelectableTextBlock.small">
+    <Setter Property="FontSize" Value="{DynamicResource StudioSmallSize}" />
+  </Style>
+  <Style Selector="Button.small">
+    <Setter Property="FontSize" Value="{DynamicResource StudioSmallSize}" />
+  </Style>
+  <Style Selector="TextBlock.caption">
+    <Setter Property="FontSize" Value="{DynamicResource StudioCaptionSize}" />
+  </Style>
+  <Style Selector="TextBlock.stat">
+    <Setter Property="FontSize" Value="{DynamicResource StudioStatSize}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.error, SelectableTextBlock.error">
+    <Setter Property="Foreground" Value="{DynamicResource StudioFailBrush}" />
+  </Style>
+  <Style Selector="TextBlock.warn">
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+
+  <!-- Surfaces -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource StudioRadius}" />
+    <Setter Property="Padding" Value="16" />
+  </Style>
+  <Style Selector="Border.pane">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource StudioRadius}" />
+  </Style>
+  <Style Selector="Border.badge">
+    <Setter Property="Background" Value="{DynamicResource StudioRaisedBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource StudioRadius}" />
+    <Setter Property="Padding" Value="8,2" />
+  </Style>
+
+  <!-- The one filled button per view: the main action. -->
+  <Style Selector="Button.accent /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioOnAccentBrush}" />
+  </Style>
+  <Style Selector="Button.accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioOnAccentBrush}" />
+  </Style>
+  <Style Selector="Button.accent:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentPressedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioOnAccentBrush}" />
+  </Style>
+  <Style Selector="Button.accent">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button">
+    <Setter Property="Padding" Value="14,7" />
+  </Style>
+
+  <!-- A whole card that acts as one button. -->
+  <Style Selector="Button.tile">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="18" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Button.tile /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+  </Style>
+  <Style Selector="Button.tile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+
+  <!-- Navigation rail -->
+  <Style Selector="ListBox.nav">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0,1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource StudioRadius}" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioRaisedBrush}" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSelectedBrush}" />
+  </Style>
+  <Style Selector="ListBox.nav ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSelectedHoverBrush}" />
+  </Style>
+
+  <!-- Section tabs inside an area: the accent underline marks the open one. -->
+  <Style Selector="ListBox.tabs">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource StudioRadius}" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioRaisedBrush}" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.tabs ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioRaisedBrush}" />
+  </Style>
+
+  <!-- Setup check markers -->
+  <Style Selector="Ellipse.marker">
+    <Setter Property="Width" Value="10" />
+    <Setter Property="Height" Value="10" />
+    <Setter Property="Fill" Value="{DynamicResource StudioFaintBrush}" />
+  </Style>
+  <Style Selector="Ellipse.marker.pass">
+    <Setter Property="Fill" Value="{DynamicResource StudioPassBrush}" />
+  </Style>
+  <Style Selector="Ellipse.marker.warn">
+    <Setter Property="Fill" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+  <Style Selector="Ellipse.marker.fail">
+    <Setter Property="Fill" Value="{DynamicResource StudioFailBrush}" />
+  </Style>
+
+  <!-- Tables and lists -->
+  <Style Selector="DataGrid">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="GridLinesVisibility" Value="None" />
+    <Setter Property="HeadersVisibility" Value="Column" />
+    <Setter Property="IsReadOnly" Value="True" />
+    <Setter Property="CanUserResizeColumns" Value="True" />
+    <Setter Property="SelectionMode" Value="Single" />
+  </Style>
+  <Style Selector="TreeView">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="GridSplitter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+</Styles>

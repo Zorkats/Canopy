@@ -52,7 +52,7 @@ void __fastcall Detour_StartLoadGame() {
 }  // namespace
 
 bool Install() {
-    if (!MatchesSignatures(retail::kEventSignatures)) {
+    if (!RequirementsMet(retail::kEventRequirements)) {
         return false;
     }
     DetourSet detours("Game events");

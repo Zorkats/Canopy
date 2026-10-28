@@ -1,0 +1,153 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:gvm="using:CanopyStudio.ViewModels.Game"
+             x:Class="CanopyStudio.Views.Game.TableGridView"
+             x:DataType="gvm:TableGridViewModel">
+  <UserControl.Styles>
+    <!-- One line per row; numbers in the fixed-width face, right-aligned.
+         The edits mod's values wear the accent, refused ones the failure
+         colour. -->
+    <Style Selector="DataGrid#Cells DataGridRow">
+      <Setter Property="MinHeight" Value="26" />
+    </Style>
+    <Style Selector="DataGrid#Cells DataGridCell">
+      <Setter Property="MinHeight" Value="26" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="DataGrid#Cells DataGridColumnHeader">
+      <Setter Property="FontSize" Value="{DynamicResource StudioSmallSize}" />
+      <Setter Property="MinHeight" Value="30" />
+    </Style>
+    <Style Selector="TextBlock.cell">
+      <Setter Property="Margin" Value="8,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="TextWrapping" Value="NoWrap" />
+      <Setter Property="MaxLines" Value="1" />
+    </Style>
+    <Style Selector="TextBlock.cell.num">
+      <Setter Property="FontFamily" Value="{DynamicResource StudioMono}" />
+      <Setter Property="FontSize" Value="{DynamicResource StudioSmallSize}" />
+      <Setter Property="TextAlignment" Value="Right" />
+    </Style>
+    <Style Selector="TextBlock.cell.patched">
+      <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+    </Style>
+    <Style Selector="TextBlock.cell.refused">
+      <Setter Property="Foreground" Value="{DynamicResource StudioFailBrush}" />
+      <Setter Property="TextDecorations" Value="Underline" />
+    </Style>
+    <Style Selector="TextBlock.cell.key">
+      <Setter Property="Foreground" Value="{DynamicResource StudioMutedBrush}" />
+    </Style>
+    <Style Selector="TextBox.cell">
+      <Setter Property="MinHeight" Value="24" />
+      <Setter Property="Padding" Value="7,2" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBox.cell.num">
+      <Setter Property="FontFamily" Value="{DynamicResource StudioMono}" />
+      <Setter Property="FontSize" Value="{DynamicResource StudioSmallSize}" />
+      <Setter Property="TextAlignment" Value="Right" />
+    </Style>
+    <Style Selector="PathIcon.lock">
+      <Setter Property="Width" Value="9" />
+      <Setter Property="Height" Value="9" />
+      <Setter Property="Foreground" Value="{DynamicResource StudioFaintBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Panel>
+    <TextBlock IsVisible="{Binding IsLoading}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center"
+               Text="Reading the table..." />
+    <TextBlock IsVisible="{Binding HasError}" Classes="error" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+               TextWrapping="Wrap" Text="{Binding Error}" />
+
+    <DockPanel IsVisible="{Binding HasGrid}">
+      <StackPanel DockPanel.Dock="Top" Margin="14,12,14,8" Spacing="8">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Classes="h3" VerticalAlignment="Center" Text="{Binding Title}" />
+          <Border Classes="badge">
+            <TextBlock Classes="muted small" Text="{Binding Kind}" />
+          </Border>
+        </StackPanel>
+        <TextBlock Classes="faint small" TextWrapping="Wrap" Text="{Binding Summary}" />
+        <Grid ColumnDefinitions="2*,Auto,*,Auto">
+          <TextBox Text="{Binding RowFilter}" Watermark="Filter rows by id, enum name or any value" />
+          <CheckBox Grid.Column="1" Margin="12,0" Content="Changed only" IsChecked="{Binding ChangedOnly}"
+                    ToolTip.Tip="Only the rows the edits mod changes." />
+          <TextBox Grid.Column="2" Text="{Binding ColumnFilter}" Watermark="Columns, such as drawInfo or name."
+                   ToolTip.Tip="Shows the columns whose path holds any of the words, separated by spaces or commas." />
+          <Button Grid.Column="3" Margin="8,0,0,0" Content="Clear" Command="{Binding ClearFiltersCommand}" />
+        </Grid>
+        <TextBlock Classes="faint small" IsVisible="{Binding RowsCaption, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                   Text="{Binding RowsCaption}" />
+        <SelectableTextBlock Classes="error small" IsVisible="{Binding HasStatus}" TextWrapping="Wrap" Text="{Binding Status}" />
+      </StackPanel>
+
+      <!-- Values of the edits mod the grid has no cell for -->
+      <Border DockPanel.Dock="Bottom" IsVisible="{Binding HasUnplaced}"
+              BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="14,8">
+        <Expander Header="{Binding UnplacedTitle}" HorizontalAlignment="Stretch">
+          <ScrollViewer MaxHeight="160">
+            <ItemsControl ItemsSource="{Binding Unplaced}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="gvm:PatchNoteItem">
+                  <Grid ColumnDefinitions="64,*" Margin="0,3">
+                    <TextBlock Classes="mono faint" Text="{Binding LineText}" />
+                    <StackPanel Grid.Column="1" Spacing="1">
+                      <SelectableTextBlock Classes="mono" TextWrapping="Wrap" Text="{Binding Where}" />
+                      <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{Binding Reason}" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Expander>
+      </Border>
+
+      <DataGrid x:Name="Cells"
+                ItemsSource="{Binding VisibleRows}"
+                SelectedItem="{Binding SelectedRow}"
+                IsReadOnly="False"
+                FrozenColumnCount="3"
+                CanUserSortColumns="False"
+                CanUserReorderColumns="False"
+                HorizontalScrollBarVisibility="Auto"
+                AutomationProperties.Name="Table cells">
+        <DataGrid.ContextMenu>
+          <ContextMenu>
+            <MenuItem x:Name="RevertCellItem" Header="Revert this cell" />
+            <MenuItem x:Name="RevertRowItem" Header="Revert this row" />
+          </ContextMenu>
+        </DataGrid.ContextMenu>
+        <DataGrid.Columns>
+          <DataGridTemplateColumn Header="Index" Width="64" IsReadOnly="True">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate x:DataType="gvm:TableRowItem">
+                <TextBlock Classes="cell num key" Text="{Binding Index}" ToolTip.Tip="{Binding RowTip}" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="Id" Width="96" IsReadOnly="True">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate x:DataType="gvm:TableRowItem">
+                <TextBlock Classes="cell num" Classes.patched="{Binding IsPatched}" Text="{Binding IdText}"
+                           ToolTip.Tip="{Binding RowTip}" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="Enum name" Width="200" IsReadOnly="True">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate x:DataType="gvm:TableRowItem">
+                <TextBlock Classes="cell mono" Text="{Binding EnumText}" ToolTip.Tip="{Binding RowTip}" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+    </DockPanel>
+  </Panel>
+</UserControl>

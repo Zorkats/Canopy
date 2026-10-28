@@ -1,0 +1,164 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CanopyStudio.ViewModels"
+        xmlns:views="using:CanopyStudio.Views"
+        xmlns:cvm="using:CanopyStudio.ViewModels.Create"
+        xmlns:cviews="using:CanopyStudio.Views.Create"
+        xmlns:gvm="using:CanopyStudio.ViewModels.Game"
+        xmlns:gviews="using:CanopyStudio.Views.Game"
+        x:Class="CanopyStudio.Views.ShellWindow"
+        x:DataType="vm:ShellViewModel"
+        Title="Canopy Studio"
+        MinWidth="980"
+        MinHeight="620"
+        WindowStartupLocation="CenterScreen">
+  <Window.DataTemplates>
+    <DataTemplate DataType="vm:HomeViewModel">
+      <views:HomeView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:SetupViewModel">
+      <views:SetupView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:FilesViewModel">
+      <views:FilesView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:TablesViewModel">
+      <views:TablesView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:GameAreaViewModel">
+      <views:GameAreaView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:ComingAreaViewModel">
+      <views:ComingAreaView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:PlayViewModel">
+      <views:PlayView />
+    </DataTemplate>
+    <DataTemplate DataType="cvm:CreateAreaViewModel">
+      <cviews:CreateAreaView />
+    </DataTemplate>
+    <DataTemplate DataType="cvm:RawIniViewModel">
+      <cviews:RawIniView />
+    </DataTemplate>
+    <DataTemplate DataType="cvm:LuaViewModel">
+      <cviews:LuaView />
+    </DataTemplate>
+    <DataTemplate DataType="cvm:ProblemsViewModel">
+      <cviews:ProblemsView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:ListsViewModel">
+      <views:ListsView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:OnboardingViewModel">
+      <views:OnboardingView />
+    </DataTemplate>
+    <DataTemplate DataType="gvm:GameTextViewModel">
+      <gviews:GameTextView />
+    </DataTemplate>
+    <DataTemplate DataType="gvm:GameArtViewModel">
+      <gviews:GameArtView />
+    </DataTemplate>
+    <DataTemplate DataType="gvm:GameSoundViewModel">
+      <gviews:GameSoundView />
+    </DataTemplate>
+    <DataTemplate DataType="gvm:EditsModBarViewModel">
+      <gviews:EditsModBar />
+    </DataTemplate>
+  </Window.DataTemplates>
+
+  <Panel>
+    <!-- The worn theme's backdrop, dimmed on the black window; none in
+         Forest. Text never sits on it bare: the rail, panels and status bar
+         are translucent layers over it. -->
+    <Image Source="{DynamicResource StudioBackdrop}"
+           Opacity="{DynamicResource StudioBackdropOpacity}"
+           Stretch="UniformToFill"
+           IsHitTestVisible="False" />
+
+    <Grid RowDefinitions="*,Auto" IsVisible="{Binding ShowMain}">
+      <Grid ColumnDefinitions="208,*">
+        <!-- Navigation rail -->
+        <Border Background="{DynamicResource StudioRailBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="0,0,1,0">
+          <DockPanel Margin="12,20,12,12">
+            <StackPanel DockPanel.Dock="Top" Margin="10,0,10,24" Spacing="2">
+              <TextBlock Classes="brand" Text="Canopy Studio" />
+              <TextBlock Classes="faint small" Text="for Village in the Shade" />
+            </StackPanel>
+            <StackPanel DockPanel.Dock="Bottom" Margin="10,12,10,0" Spacing="6">
+              <TextBlock Classes="label" Text="THEME" />
+              <ComboBox HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="Theme"
+                        ItemsSource="{Binding Appearance.Choices}"
+                        SelectedItem="{Binding Appearance.SelectedTheme}" />
+              <TextBlock Classes="faint small"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding Appearance.IsPreparing}"
+                         Text="Copying the game's fonts and art..." />
+              <TextBlock Classes="faint small"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding Appearance.ShowFallbackNote}"
+                         Text="The seasonal themes appear once Setup has copied the game's art." />
+            </StackPanel>
+            <!-- Closed until first-time setup is done; Setup is open then. -->
+            <ListBox Classes="nav"
+                     ItemsSource="{Binding Pages}"
+                     SelectedItem="{Binding CurrentPage}"
+                     IsEnabled="{Binding IsSetupDone}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:PageViewModel">
+                  <Grid ColumnDefinitions="3,*" Height="36">
+                    <Border Width="3"
+                            Height="16"
+                            CornerRadius="{DynamicResource StudioRadius}"
+                            Background="{DynamicResource StudioAccentBrush}"
+                            IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+                    <TextBlock Grid.Column="1" Margin="12,0" VerticalAlignment="Center" Text="{Binding Title}" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+        </Border>
+
+        <!-- Pages cross-fade: opacity only, so nothing travels or scales. -->
+        <TransitioningContentControl Grid.Column="1" Content="{Binding CurrentPage}">
+          <TransitioningContentControl.PageTransition>
+            <CrossFade Duration="0:0:0.18" FadeInEasing="0.16,1,0.3,1" FadeOutEasing="0.16,1,0.3,1" />
+          </TransitioningContentControl.PageTransition>
+        </TransitioningContentControl>
+      </Grid>
+
+      <!-- Status bar -->
+      <Border Grid.Row="1"
+              Background="{DynamicResource StudioStatusBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,1,0,0"
+              Padding="14,5">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Right"
+                     Classes="muted small"
+                     Classes.warn="{Binding IsUnsupportedBuild}"
+                     Text="{Binding StatusBuild}" />
+          <TextBlock Classes="faint small"
+                     TextTrimming="CharacterEllipsis"
+                     Text="{Binding StatusFolder}" />
+        </DockPanel>
+      </Border>
+    </Grid>
+
+    <!-- First-time setup, over the backdrop in place of the rail and pages. -->
+    <ContentControl Content="{Binding Onboarding}" IsVisible="{Binding IsOnboarding}" />
+
+    <!-- Without canopy_core.dll nothing works, so nothing else shows. -->
+    <Border IsVisible="{Binding HasCoreProblem}">
+      <Border Classes="card" MaxWidth="560" Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Canopy Studio cannot start" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding CoreProblem}" />
+        </StackPanel>
+      </Border>
+    </Border>
+  </Panel>
+</Window>

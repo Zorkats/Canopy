@@ -25,6 +25,9 @@ constexpr size_t kMaxMods = 64;
 constexpr size_t kMaxSettings = 256;
 // The most choices one Choice setting can have.
 constexpr int32_t kMaxChoices = 8;
+// The most values one Slider setting can have: min, max and every step
+// between them.
+constexpr int32_t kMaxSliderValues = 256;
 // Longest mod or setting key.
 constexpr size_t kMaxKeyLength = 32;
 
@@ -35,7 +38,7 @@ struct Mod {
 };
 
 // A Button stores nothing: its value is always 0 and it has no file entry.
-enum class Kind { Toggle, Binding, Choice, Button };
+enum class Kind { Toggle, Binding, Choice, Button, Slider };
 
 struct Setting {
     Kind kind;
@@ -48,8 +51,12 @@ struct Setting {
     // A choice's names, choiceCount of them, each one string per language.
     const Text* choices;
     int32_t choiceCount;
+    // A slider's values: min, min + step, and so on up to max.
+    int32_t min;
+    int32_t max;
+    int32_t step;
     // 0 or 1 for a toggle, a framework pad id for a binding, the chosen
-    // index for a choice.
+    // index for a choice, the number itself for a slider.
     int32_t value;
 };
 
@@ -73,6 +80,16 @@ int AddChoice(
     int32_t defaultIndex
 );
 
+// Registers a setting of mod that picks a number from min to max in steps
+// of step, saved as the number. max - min must be a whole number of steps,
+// the range at most kMaxSliderValues values, and defaultValue one of them.
+// A stored number is clamped to the range and moved to the nearest step.
+// The strings must outlive the process. Returns the setting's handle.
+int AddSlider(
+    int mod, const char* key, const Text& label, const Text& help, int32_t min, int32_t max, int32_t step,
+    int32_t defaultValue
+);
+
 // Registers a button row of mod. key names it in the log and must be unique
 // like a setting's. The strings must outlive the process. Returns the
 // setting's handle.
@@ -85,6 +102,10 @@ int32_t Binding(int setting);
 int32_t Choice(int setting, int32_t fallback);
 // Any setting's raw value, fallback when it is not registered.
 int32_t Value(int setting, int32_t fallback);
+
+// True when key is 1 to kMaxKeyLength letters, digits, '_' or '-', the rule
+// for mod and setting keys. Any thread.
+bool KeyValid(const char* key);
 
 // The full path of mod's settings file, or null for a bad handle.
 const char* SettingsFile(int mod);
