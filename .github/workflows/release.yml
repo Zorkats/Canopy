@@ -119,13 +119,23 @@ jobs:
           category: optional
           archive_existing_version: true
 
+      # Nexus takes no .tar.gz, so the Linux tools go up as a zip. Zip keeps the execute bits.
+      - name: Repack the Linux tools as a zip
+        if: vars.NEXUS_FILE_ID_TOOLS != ''
+        env:
+          NAME: Canopy-Tools-${{ steps.tag.outputs.version }}-linux-x64
+        run: |
+          mkdir tools
+          tar -xzf "dist/$NAME.tar.gz" -C tools
+          (cd tools && zip -qr "../dist/$NAME.zip" .)
+
       - name: Upload the Linux tools
         if: vars.NEXUS_FILE_ID_TOOLS != ''
         uses: Nexus-Mods/upload-action@98532f7670c27cbecc78fae03fa3e278147827e2 # v1.0.0-beta.11
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
           file_id: ${{ vars.NEXUS_FILE_ID_TOOLS }}
-          filename: dist/Canopy-Tools-${{ steps.tag.outputs.version }}-linux-x64.tar.gz
+          filename: dist/Canopy-Tools-${{ steps.tag.outputs.version }}-linux-x64.zip
           display_name: Canopy Tools for Linux
           version: ${{ steps.tag.outputs.version }}
           category: optional
