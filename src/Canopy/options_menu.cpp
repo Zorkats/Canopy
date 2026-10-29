@@ -68,8 +68,8 @@
 // left and, centered in the value column the way Key Config shows its keys,
 // the bound key's glyph, drawn by the engine's padIcon text tag in the style
 // of the controller in use. Pressing it makes input wait for the next key or
-// button (see input.cpp), and the
-// next press becomes the binding: Escape cancels, Delete clears. The engine
+// button (see input.cpp), and the next press becomes the binding: Escape
+// cancels, Delete clears. The engine
 // draws a row's label once, when it builds the row, so the page is closed and
 // built again, cursor on the same row, to show the wait and then the result.
 //

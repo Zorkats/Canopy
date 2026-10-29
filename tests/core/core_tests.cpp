@@ -191,8 +191,8 @@ void TestLz4Vectors() {
     std::printf("  type 7: %s\n", error.c_str());
     CHECK(!nltx::YkcmpUnpack(container.data(), 0x13, raw, error));
 
-    // Type 4, the opcodes of tools\ykcmp.py: 3 literals, then a short copy,
-    // a one-byte-distance copy and a two-byte one.
+    // Type 4: 3 literals, then a short copy, a one-byte-distance copy and a
+    // two-byte one.
     Bytes type4 = {'Y', 'K', 'C', 'M', 'P', '_', 'V', '1', 4, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0};
     for (const uint8_t byte : Bytes{0x03, 'a', 'b', 'c', 0x92, 0xC1, 0x04, 0xE0, 0x10, 0x07}) {
         type4.push_back(byte);
@@ -232,7 +232,7 @@ void TestHeaderTemplate() {
     std::string error;
     CHECK(nltx::Encode(3, 5, pixels, file, error, nltx::Packing::Literals));
 
-    // Section 5 of texture_pipeline_re.md, byte for byte.
+    // The game's kind 1 header, byte for byte.
     Bytes expected(0x80, 0);
     std::memcpy(expected.data(), "NMPLTEX1", 8);
     const uint32_t words[] = {0x66, 0x02000001, 3, 5};
@@ -246,7 +246,7 @@ void TestHeaderTemplate() {
     CHECK(file.size() == 0x80 + total);
     CHECK(Bytes(file.begin(), file.begin() + 0x80) == expected);
 
-    // The literal-only block of ykcmp9.py: 0xF0, (n - 15) in 255s, the bytes.
+    // The literal-only block: 0xF0, (n - 15) in 255s, the bytes.
     CHECK(std::memcmp(file.data() + 0x80, "YKCMP_V1", 8) == 0);
     CHECK(U32(file, 0x88) == 9 && U32(file, 0x8C) == total && U32(file, 0x90) == raw);
     CHECK(file[0x94] == 0xF0 && file[0x95] == raw - 15);
@@ -531,7 +531,8 @@ void TestSampleFolders() {
     }
 }
 
-// The reference dumps of core_ref.py, made with ykcmp9.py and Pillow.
+// Reference dumps made outside Canopy with a Python YKCMP codec and Pillow,
+// kept with the private research data.
 void TestCrossCheck() {
     std::printf("Cross-check against ykcmp9.py (core_ref)\n");
     std::ifstream manifest(kCoreRef / "manifest.txt");

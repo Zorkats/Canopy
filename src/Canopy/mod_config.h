@@ -9,7 +9,8 @@
 // Each mod keeps its own in mods\<key>.ini, in a section named after it. Mods
 // register themselves and their settings while the loader starts them, before
 // hooks are enabled; the store is then sealed, so the options menu can read
-// it with no lock. The API in api.cpp is the only way mods reach it.
+// it with no lock. Mods reach it only through the loader's API
+// (mod_loader.cpp) and the Lua host.
 namespace mod_config {
 
 // One UTF-8 string per language index (JA, EN, FR, ES, ZH-TW, KO, ZH-CN).

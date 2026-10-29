@@ -43,9 +43,9 @@
 // Load. A good load is acknowledged before the loaded save data is
 // installed: the save utility's callback runs the acknowledge first, then
 // the success callback that installs the save data and calls the post-load
-// fixup 0x46DB80 (see _work/re_reports/overlay_core_notes.md). The
-// acknowledge only queues; the frame tick, or the fixup's post-hook when it
-// runs on the game thread, reads every adapter's file and hands it over.
+// fixup 0x46DB80. The acknowledge only queues; the frame tick, or the
+// fixup's post-hook when it runs on the game thread, reads every adapter's
+// file and hands it over.
 // Once both the files are read and the save data is installed, in either
 // order, each adapter's afterLoad runs once. The fixup's rcx is not the save
 // data, so the live one is read. If the frame's save loaded event comes

@@ -850,7 +850,7 @@ void TestObjects() {
 }
 
 // The furniture rule over the game's own tables, read only: every gimmick
-// row walks, and the clone sources are the 1783 T1 counted.
+// row walks, and 1783 of them pass as furniture clone sources.
 void TestRealGimmicks() {
     std::printf("Gimmicks of the game\n");
     const fs::path folder = test_support::GameDir();

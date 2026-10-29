@@ -104,7 +104,7 @@ uint32_t Hash(const uint8_t* at) {
 }
 
 // ---- YKCMP type 4 --------------------------------------------------------
-// The opcode stream tools\ykcmp.py documents:
+// The opcode stream:
 //   00-7F  a run of that many literal bytes
 //   80-BF  copy (b >> 4) - 7 bytes from distance (b & 0xF) + 1
 //   C0-DF  copy b - 0xBE bytes from distance n0 + 1

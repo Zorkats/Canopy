@@ -427,7 +427,7 @@ struct ExpectedArchive {
     size_t entries;
 };
 
-// Mount order and counts from tools/fafullfs.py --stats on the shipped files.
+// Mount order and entry counts of the shipped files.
 const ExpectedArchive kExpected[] = {
     {"data.dat", 3175},       {"fairy_1_00.dat", 14},    {"se_1_00.dat", 1068},       {"bgm_1_00.dat", 38},
     {"map_1_00.dat", 396},    {"shader_1_00.dat", 70},   {"texture_1_00.dat", 6255}, {"misc_1_00.dat", 15},
