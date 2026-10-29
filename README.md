@@ -1,17 +1,19 @@
 # Canopy
 
-A mod loader and quality of life mods for the Steam version of Village in the Shade.
+The mod loader for the Steam version of Village in the Shade.
 
-- **Canopy** (`dinput8.dll`), the mod loader, loads every mod in the game's `mods` folder and adds a **Mod Settings** page to the game's own options menu, where you can change each mod's settings. Mods can also replace the game's own data files, such as text and textures, by shipping them in `mods\<Mod>\data\`. The title screen shows Canopy's version and how many mods are installed in its bottom-right corner.
-- **VillageQoL** (`mods\VillageQoL.dll`) adds quality of life features: quick save, faster walking, event fast forward, mouse wheel zoom and more.
+**Canopy** (`dinput8.dll`) loads every mod in the game's `mods` folder and adds a **Mod Settings** page to the game's own options menu, where you can change each mod's settings. Mods can also replace the game's own data files, such as text and textures, by shipping them in `mods\<Mod>\data\`. The title screen shows Canopy's version and how many mods are installed in its bottom-right corner.
 
 Everything is configured inside the game. There are no overlays or extra windows.
 
-**Canopy Studio**, a separate desktop app for Windows and Linux, installs and updates both for you, turns mods off and on, makes new mods, edits their Lua with completion of the Canopy API, and browses the game's files. See [Canopy Studio](#canopy-studio).
+Two companions have their own repositories and releases:
+
+- **[VillageQoL](https://github.com/Zorkats/VillageQoL)** (`mods\VillageQoL.dll`), a Canopy mod with quality of life features: quick save, faster walking, event fast forward, mouse wheel zoom and more.
+- **[Canopy Studio](https://github.com/Zorkats/CanopyStudio)**, a desktop app for Windows and Linux that installs and updates Canopy and VillageQoL for you, turns mods off and on, makes new mods, edits their Lua with completion of the Canopy API, and browses the game's files.
 
 ## Install
 
-You need two files: `dinput8.dll` and `VillageQoL.dll`. They come in two release archives, `Canopy-<version>.zip` and `VillageQoL-<version>.zip`, or from your own build (see [Building from source](#building-from-source)). Canopy works without VillageQoL, so you can install the loader alone.
+You need `dinput8.dll`, from `Canopy-<version>.zip` on this repository's [releases page](https://github.com/Zorkats/Canopy/releases/latest) or from your own build (see [Building from source](#building-from-source)). For VillageQoL you also need `VillageQoL.dll`, from `VillageQoL-<version>.zip` on [its releases page](https://github.com/Zorkats/VillageQoL/releases/latest). Canopy works without VillageQoL, so you can install the loader alone. [Canopy Studio](https://github.com/Zorkats/CanopyStudio) does all of this for you.
 
 1. Open the game folder. In Steam, right-click **Village in the Shade**, then pick **Manage > Browse local files**.
 2. Copy `dinput8.dll` into that folder, next to `village.exe`.
@@ -46,17 +48,6 @@ The game runs there through Proton, and Canopy runs inside it. Proton uses its o
 
 `Canopy.log` then has the line `Running under Wine or Proton, version ...`. No `Canopy.log` at all means the launch option is missing or mistyped.
 
-### Canopy Studio
-
-Canopy Studio is optional. It finds the game in your Steam libraries, installs Canopy and VillageQoL from the latest release (each download checked against the SHA-256 GitHub lists for it), and changes the game folder only when you ask it to.
-
-| System | Download | Start |
-|---|---|---|
-| Windows 10 or 11, 64-bit | `CanopyStudio-<version>-windows-x64.zip` | Extract anywhere, run `CanopyStudio.exe`. |
-| Linux, 64-bit (x86-64) | `CanopyStudio-<version>-linux-x64.tar.gz` | Extract anywhere, run `CanopyStudio`. |
-
-Both carry everything they need: no .NET or other runtime to install. On Linux the game still runs through Proton, so set the launch option above; Canopy Studio shows it with a **Copy** button, but never changes Steam's files itself. It finds Steam installed natively or as a Flatpak, and keeps its own files in `~/.config/CanopyStudio` (`%APPDATA%\CanopyStudio` on Windows).
-
 ### Updating from an older VillageQoL
 
 Older versions were a single `dinput8.dll` that kept its settings in `VillageQoL.ini` next to the game. Install as above, replacing the old `dinput8.dll`. Your settings are copied to `mods\VillageQoL.ini` on the first start. After that, the old `VillageQoL.ini` and `VillageQoL.log` are no longer used and you can delete them.
@@ -79,20 +70,6 @@ Open **Options** from the title screen or the in-game menu, then pick **Mod Sett
 Changes apply at once and are saved right away to the mod's file in `mods`.
 
 The in-game options menu also gets a **Return to Title** row above **Exit Game**. It asks for confirmation first, since unsaved progress is lost.
-
-## VillageQoL features
-
-| Feature | What it does | Default |
-|---|---|---|
-| Show BGM Information | Shows each song's title in the game's popup log the first time it plays. | On |
-| Quick Save | Press the key in the field to save and return to the title screen. The save loads from an extra row in the load menu, and is deleted once you load it. | F5, no controller button |
-| Settings Hotkey | Press the key in the field to open the options. | F10, no controller button |
-| Walking Speed | How fast you walk and run in the field: Normal, 1.25x, 1.5x, 1.75x or 2x. Movement during events does not change. | 1.5x |
-| Event Fast Forward | Hold the key or button during an event the game lets you skip, to play it faster. Events that cannot be skipped are never sped up. | Left Ctrl or RT, 4x |
-| Advance Text | While fast forwarding, talk advances on its own. | On |
-| Beta Event Skip | Press Cancel and the fast forward button together (B + RT, or Circle + R2) during an event the game lets you skip, to run it at 32x like the beta build's skip. It stops at every choice and popup and hands control back, so it never answers for you. | Off |
-| Mouse Wheel Zoom | Scroll the mouse wheel in the field to step the camera through its three zoom levels. | On |
-| Back Up Key Bindings | Keeps a copy of your game key bindings in `mods\VillageQoL.ini` and restores them if they ever load back at their defaults. | On |
 
 ## When something goes wrong
 
@@ -162,28 +139,29 @@ To lay out the packages a release ships:
 
 ```bat
 cmake --install build --component canopy --prefix dist\canopy
-cmake --install build --component villageqol --prefix dist\villageqol
 cmake --install build --component sdk --prefix dist\sdk
 ```
 
 | Package | Contents |
 |---|---|
 | `canopy` | `dinput8.dll`, the loader, with this README, the license and the third-party notices. |
-| `villageqol` | `mods\VillageQoL.dll` in the game folder layout, with the license. |
 | `sdk` | `sdk\canopy_api.h`, the docs, and the example mod's source, which builds on its own. |
 
 ### On Linux
 
-Linux builds the parts that run outside the game: `libcanopy_core.so`, which Canopy Studio reads the game with, and the `canopy` command line tool. The loader and VillageQoL are Windows DLLs and are built on Windows only; under Proton they run as they are. You need GCC 12 or newer, CMake and, for Canopy Studio, the .NET 10 SDK. vcpkg is not needed.
+Linux builds the parts that run outside the game: `libcanopy_core.so`, which Canopy Studio reads the game with, and the `canopy` command line tool. The loader is a Windows DLL and is built on Windows only; under Proton it runs as it is. You need GCC 12 or newer and CMake. vcpkg is not needed.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ctest --test-dir build --output-on-failure
-dotnet publish src/CanopyStudio/CanopyStudio/CanopyStudio.csproj -c Release -r linux-x64 --self-contained
 ```
 
-The tests that read the game look for it in `~/.local/share/Steam`; set `CANOPY_GAME_DIR` to its folder for another install. Canopy Studio copies `libcanopy_core.so` from `build/src/CanopyTools` (on Windows `canopy_core.dll`); add `-p:CanopyCoreDir=<folder>`, with the folder's full path, to take it from elsewhere.
+The tests that read the game look for it in `~/.local/share/Steam`; set `CANOPY_GAME_DIR` to its folder for another install.
+
+### As a subproject
+
+VillageQoL and Canopy Studio take Canopy as a git submodule in `external/Canopy` and add it with `add_subdirectory`, or configure it on its own for `canopy_core`. Only the loader needs vcpkg, so they turn it off with `-DCANOPY_BUILD_LOADER=OFF`; `CANOPY_BUILD_TOOLS`, `CANOPY_BUILD_TESTS` and `CANOPY_BUILD_EXAMPLES` turn off the rest. Install rules are only added when Canopy is the top project.
 
 ### When the game updates
 
@@ -197,6 +175,8 @@ scripts\add_game_build.bat "C:\path\to\new\village.exe" "Ver. 1.xx (Steam build 
 
 The last argument, a listed build, is optional. The script prints what the search found and what to check by hand: names only some of their lines found, functions whose length changed, and fields whose value changed. It asks before it adds the section, then copies the exe to `_work\bin` for the tests, rebuilds and runs the tests. A name it cannot find stops it; once you have checked the new build has no such site, add `--none <name>`. When the game's code moved a lot, regenerate the patterns from every sample, newest first, with `python scripts\gen_address_patterns.py "_work\bin\village <new>.exe" "_work\bin\village 1.30.exe"`.
 
+VillageQoL's feature lists live in `game_retail.h` too, so its sources count as well. Give the generator its source folder with `--sources ..\VillageQoL\src`, which pairs the names its files use together. The tests check that each game address a source file uses is in a list that file checks; `-DCANOPY_MOD_SOURCE_DIRS=<folder>` adds a mod's folder to that check, and VillageQoL's own build sets it.
+
 To try the search on a checked build in the game, put a file `mods\CanopyData\force_search.txt` in the game folder. Canopy then searches `village.exe`, or the loaded game when the file's first word is `loaded`, logs how the result compares with the checked addresses, and keeps features that write saves off.
 
 ### Releases
@@ -206,21 +186,17 @@ GitHub Actions builds and tests every push and pull request on Windows and on Li
 | Package | Contents |
 |---|---|
 | `Canopy-1.2.0.zip` | The loader. |
-| `VillageQoL-1.2.0.zip` | The VillageQoL mod. |
 | `Canopy-SDK-1.2.0.zip` | The header, the docs and the example mod. |
-| `CanopyStudio-1.2.0-windows-x64.zip`, `CanopyStudio-1.2.0-linux-x64.tar.gz` | Canopy Studio. |
 | `Canopy-Tools-1.2.0-linux-x64.tar.gz` | The `canopy` tool and `libcanopy_core.so` for Linux. |
 
-The tag's version is the one the title screen shows and the DLLs' version resources carry. Every day the tip of `main` is also published as the `nightly` prerelease, when it has changed. Canopy Studio installs from the latest tagged release only, never from a nightly.
+VillageQoL and Canopy Studio are released from their own repositories, with their own versions. The tag's version is the one the title screen shows and the loader's version resource carries. Every day the tip of `main` is also published as the `nightly` prerelease, when it has changed. Canopy Studio installs from the latest tagged release only, never from a nightly.
 
 | Folder | Contents |
 |---|---|
 | `sdk\` | `canopy_api.h`, the only file a mod needs. |
 | `src\Canopy\` | The loader: proxy DLL, frame hook, input, settings store and the Mod Settings page. |
-| `src\VillageQoL\` | The VillageQoL mod. |
-| `src\common\` | Game addresses and helpers shared by the loader and VillageQoL. |
+| `src\common\` | Game addresses and helpers shared by the loader and mods built against them, such as VillageQoL. |
 | `src\CanopyCore\`, `src\CanopyTools\` | The game archive and mod rules library behind `canopy_core` and the `canopy` tool, for Windows and Linux. |
-| `src\CanopyStudio\` | Canopy Studio. |
 | `examples\ExampleMod\` | The example mod. It is built too; add `-DCANOPY_BUILD_EXAMPLES=OFF` to skip it. |
 | `docs\` | The modding guide, the API reference, the Lua guide and the [roadmap](docs/ROADMAP.md). |
 

@@ -636,7 +636,7 @@ Only the first match comes back, so make sure the pattern matches one place: sea
 
 > **Sharing a function.** VillageQoL hooks this walk update too. Both detours run: the loader chains every hook on a function in creation order, so the mod whose file name comes first runs first, and the last `original` leads to the game's code. List the functions you hook in your mod's description, so players can tell which mods touch the same thing.
 
-For a real, larger example, read [src/VillageQoL/walk_speed.cpp](../src/VillageQoL/walk_speed.cpp). It checks two functions' bytes and hooks both, and it only changes anything while `PlayerInField()` is true.
+For a real, larger example, read VillageQoL's [src/walk_speed.cpp](https://github.com/Zorkats/VillageQoL/blob/main/src/walk_speed.cpp). It checks two functions' bytes and hooks both, and it only changes anything while `PlayerInField()` is true.
 
 ## Replace game files
 

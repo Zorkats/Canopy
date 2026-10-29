@@ -1,7 +1,7 @@
 {
   "name": "canopy",
   "version-string": "dev",
-  "description": "Canopy mod loader and VillageQoL for Village in the Shade.",
+  "description": "Canopy, the mod loader for Village in the Shade.",
   "dependencies": [
     {
       "name": "minhook",

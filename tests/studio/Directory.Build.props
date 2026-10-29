@@ -1,4 +1,0 @@
-<Project>
-  <!-- The same build settings as Canopy Studio itself. -->
-  <Import Project="..\..\src\CanopyStudio\Directory.Build.props" />
-</Project>

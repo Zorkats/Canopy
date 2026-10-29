@@ -1,9 +1,9 @@
 name: Release
 
-# A tag such as v1.2.0 publishes a GitHub release with every package: Canopy, VillageQoL and the
-# SDK, Canopy Studio for Windows and Linux, and the Linux tools. Canopy Studio's installer reads
-# the latest release and downloads Canopy-<version>.zip and VillageQoL-<version>.zip by those
-# names, checked against the SHA-256 GitHub lists for each asset. The builds are the platform
+# A tag such as v1.2.0 publishes a GitHub release with every package: Canopy, the SDK and the
+# Linux tools. Canopy Studio's installer reads the latest release and downloads
+# Canopy-<version>.zip by that name, checked against the SHA-256 GitHub lists for it. VillageQoL
+# and Canopy Studio are released from their own repositories. The builds are the platform
 # workflows themselves, called rather than copied, and nothing is published unless both built.
 
 on:
@@ -51,20 +51,18 @@ jobs:
 
           version="${TAG#v}"
           assets=(dist/*.zip dist/*.tar.gz)
-          for wanted in "Canopy-$version.zip" "VillageQoL-$version.zip"; do
-            if [ ! -f "dist/$wanted" ]; then
-              echo "::error::$wanted is missing, and Canopy Studio installs from it."
-              exit 1
-            fi
-          done
+          if [ ! -f "dist/Canopy-$version.zip" ]; then
+            echo "::error::Canopy-$version.zip is missing, and Canopy Studio installs from it."
+            exit 1
+          fi
 
           {
             echo "## Downloads"
             echo
             echo "- \`Canopy-$version.zip\`: the loader. Extract into the game folder, next to \`village.exe\`."
-            echo "- \`VillageQoL-$version.zip\`: the VillageQoL mod. Extract into the game folder."
-            echo "- \`CanopyStudio-$version-windows-x64.zip\` and \`CanopyStudio-$version-linux-x64.tar.gz\`: Canopy Studio, which installs both of the above for you."
             echo "- \`Canopy-SDK-$version.zip\` and \`Canopy-Tools-$version-linux-x64.tar.gz\`: for mod authors."
+            echo
+            echo "[VillageQoL](https://github.com/Zorkats/VillageQoL/releases/latest) and [Canopy Studio](https://github.com/Zorkats/CanopyStudio/releases/latest), which installs Canopy and VillageQoL for you, have their own releases."
             echo
             echo "On Linux and Steam Deck the game runs through Proton. Canopy loads only with this Steam launch option:"
             echo

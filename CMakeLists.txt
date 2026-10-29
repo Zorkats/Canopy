@@ -16,9 +16,9 @@ endif()
 add_library(CanopyApi INTERFACE)
 target_include_directories(CanopyApi INTERFACE sdk)
 
-# The release version. The title screen shows it, and the version resources
-# of dinput8.dll and VillageQoL.dll carry it, where Canopy Studio reads it.
-# The release workflow sets it from the tag.
+# The release version. The title screen shows it, and dinput8.dll's version
+# resource carries it, where Canopy Studio reads it. The release workflow sets
+# it from the tag.
 set(CANOPY_RELEASE "1.0.0" CACHE STRING "Canopy release version")
 # The resources' numeric version: the release's three numbers, or zeros for a
 # build that is not a release, such as dev-1a2b3c4.
@@ -28,16 +28,26 @@ else()
     set(CANOPY_RELEASE_NUMBERS "0,0,0,0")
 endif()
 
-# The loader, VillageQoL and the game-side code they share are Windows DLLs
-# the game loads, under Proton or Wine on Linux as well, so they build on
-# Windows only. CanopyCore, the tools and the tests build everywhere.
+# Canopy is also built as a subproject, from a git submodule: VillageQoL
+# builds its DLL against src/common, and Canopy Studio builds canopy_core.
+# Packages are only installed from Canopy's own build.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(CANOPY_IS_TOP_LEVEL ON)
+else()
+    set(CANOPY_IS_TOP_LEVEL OFF)
+endif()
+
+# The loader and the game-side code mods share are Windows DLLs the game
+# loads, under Proton or Wine on Linux as well, so they build on Windows only.
+# CanopyCore, the tools and the tests build everywhere. The loader alone needs
+# MinHook from vcpkg; with CANOPY_BUILD_LOADER off no vcpkg is needed.
+option(CANOPY_BUILD_LOADER "Build the loader, dinput8.dll (needs vcpkg's MinHook)" ON)
 if(WIN32)
     add_subdirectory(src/common)
 endif()
 add_subdirectory(src/CanopyCore)
-if(WIN32)
+if(WIN32 AND CANOPY_BUILD_LOADER)
     add_subdirectory(src/Canopy)
-    add_subdirectory(src/VillageQoL)
 endif()
 
 # The canopy command line tool and canopy_core.dll, for mod authors and
@@ -56,23 +66,26 @@ endif()
 
 # Checks of the texture codec and image I/O. Run with ctest --test-dir build.
 option(CANOPY_BUILD_TESTS "Build the core tests" ON)
+# Source folders of mods built against src/common, such as VillageQoL's, whose
+# game addresses the address-list check covers along with the loader's.
+set(CANOPY_MOD_SOURCE_DIRS "" CACHE STRING "Mod source folders the address-list check covers")
 if(CANOPY_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests/core)
 endif()
 
-# Three packages, installed with cmake --install build --component <name>:
-#   canopy      the loader, dinput8.dll, for the game folder
-#   villageqol  the VillageQoL mod, mods\VillageQoL.dll, for the game folder
-#   sdk         what a mod author needs: the header, the docs, the example
-#               source and the tools
-if(WIN32)
-    install(FILES README.md LICENSE THIRD_PARTY_NOTICES.txt DESTINATION . COMPONENT canopy)
-    install(FILES LICENSE DESTINATION . COMPONENT villageqol)
+# Two packages, installed with cmake --install build --component <name>:
+#   canopy  the loader, dinput8.dll, for the game folder
+#   sdk     what a mod author needs: the header, the docs, the example source
+#           and the tools
+if(CANOPY_IS_TOP_LEVEL)
+    if(WIN32 AND CANOPY_BUILD_LOADER)
+        install(FILES README.md LICENSE THIRD_PARTY_NOTICES.txt DESTINATION . COMPONENT canopy)
+    endif()
+    install(FILES LICENSE DESTINATION . COMPONENT sdk)
+    install(DIRECTORY sdk/ DESTINATION sdk COMPONENT sdk)
+    install(DIRECTORY docs/ DESTINATION docs COMPONENT sdk)
+    install(FILES examples/ExampleMod/CMakeLists.txt examples/ExampleMod/example_mod.cpp
+                  examples/ExampleMod/example_mod_api.h
+            DESTINATION examples/ExampleMod COMPONENT sdk)
 endif()
-install(FILES LICENSE DESTINATION . COMPONENT sdk)
-install(DIRECTORY sdk/ DESTINATION sdk COMPONENT sdk)
-install(DIRECTORY docs/ DESTINATION docs COMPONENT sdk)
-install(FILES examples/ExampleMod/CMakeLists.txt examples/ExampleMod/example_mod.cpp
-              examples/ExampleMod/example_mod_api.h
-        DESTINATION examples/ExampleMod COMPONENT sdk)

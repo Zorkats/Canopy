@@ -122,7 +122,7 @@ The game draws from the unlock pool 80 times in 100 while it holds an entry that
 ## Naming rows and items
 
 - A row or a vanilla part is named by its id, as a number, or by its enum name as the game writes it, with case: `spots = 1, 3`. `fish.dat` has no enum names, so a fish is named by its item's id or enum name.
-- [Canopy Studio](../README.md#canopy-studio)'s game browser shows every table's rows with their ids and fields.
+- [Canopy Studio](https://github.com/Zorkats/CanopyStudio)'s game browser shows every table's rows with their ids and fields.
 - A number in a mod id band, such as a mod item's `1500000001`, is refused: name a mod item by its key, so the section follows it if its id ever changes. A [mod row](ROWS.md)'s id or `CANOPY_` enum name is refused too.
 - Mod references are checked at startup. A vanilla id is checked against its table as the table loads, if that table has already loaded, and at the title otherwise. An enum name is looked up as the table loads.
 

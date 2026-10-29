@@ -101,7 +101,7 @@ Every drop of the first item gives the second instead, with the base's counts. T
 
 ## Other fields
 
-`crops.<path>` and `cropsharvest.<path>` set any other field of the two rows by its engine path, as a [patch](PATCHES.md) does, such as `cropsharvest.form.0.growInfo.0.harvest.0.dropRate = 50`. The paths are listed in [Canopy Studio](../README.md#canopy-studio)'s game browser.
+`crops.<path>` and `cropsharvest.<path>` set any other field of the two rows by its engine path, as a [patch](PATCHES.md) does, such as `cropsharvest.form.0.growInfo.0.harvest.0.dropRate = 50`. The paths are listed in [Canopy Studio](https://github.com/Zorkats/CanopyStudio)'s game browser.
 
 These are refused:
 

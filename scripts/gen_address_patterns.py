@@ -677,10 +677,10 @@ def read_vias():
     return {m[1]: m[2] for m in re.finditer(r"GAME_FIELD_VIA\((\w+), (\w+)\)", text)}
 
 
-def related_names():
+def related_names(sources):
     """Each k-name of the sources, mapped to the k-names used beside it in a file."""
     used = {}
-    for folder, _, files in os.walk(SOURCE_PATH):
+    for folder, _, files in (walked for source in sources for walked in os.walk(source)):
         for file in files:
             path = os.path.join(folder, file)
             if not file.endswith((".cpp", ".h")) or os.path.samefile(path, RETAIL_PATH):
@@ -699,6 +699,8 @@ def main():
                         help="also try every plain size_t constant of game_retail.h as a field")
     parser.add_argument("--wider", action="store_true",
                         help="also cut fields from the functions one call away, where two functions agree")
+    parser.add_argument("--sources", action="append", default=[], metavar="DIR",
+                        help="a mod's source folder to read beside src, such as VillageQoL's; repeatable")
     args = parser.parse_args()
 
     builds = read_builds()
@@ -793,7 +795,7 @@ def main():
                 len(spread(images[0], [line for _, line in kept[name]])) < 2)
 
     needed = [name for name, lines in kept.items() if len(lines) < args.want or uncovered(name) or one_place(name)]
-    used = related_names()
+    used = related_names([SOURCE_PATH] + args.sources)
     sites = {}
     for image in images:
         mine = [name for name in needed if sources[name] is image and name not in fields]

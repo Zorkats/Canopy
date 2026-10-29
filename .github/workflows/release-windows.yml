@@ -1,8 +1,8 @@
 name: Build (Windows)
 
-# Builds Canopy, VillageQoL, the SDK and Canopy Studio for Windows, runs the tests, and packages
-# them with .github/scripts/package_windows.ps1, which refuses a binary that needs the Visual
-# C++ redistributable. The zips are a workflow artifact; build.yml, release.yml and nightly.yml
+# Builds Canopy, the SDK and the tools for Windows, runs the tests, and packages them with
+# .github/scripts/package_windows.ps1, which refuses a binary that needs the Visual C++
+# redistributable. VillageQoL and Canopy Studio build in their own repositories. The zips are a workflow artifact; build.yml, release.yml and nightly.yml
 # call this same workflow, so a pull request, a tagged release and a nightly pass the same
 # checks and cannot drift apart. Adapted from G-Diffuser's release-windows.yml.
 
@@ -43,21 +43,14 @@ jobs:
           $value = $env:REQUESTED_VERSION
           if (-not $value -and $env:GITHUB_REF_TYPE -eq 'tag') { $value = $env:GITHUB_REF_NAME -replace '^v', '' }
           if (-not $value) { $value = "dev-$($env:GITHUB_SHA.Substring(0, 7))" }
-          # .NET wants three numbers for the assembly version; dev builds read as 0.0.0.
-          $numbers = if ($value -match '^(\d+\.\d+\.\d+)') { $Matches[1] } else { '0.0.0' }
           "value=$value" >> $env:GITHUB_OUTPUT
-          "numbers=$numbers" >> $env:GITHUB_OUTPUT
 
       - name: Set up the MSVC x64 environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      # The title screen and the DLLs' version resources carry the version.
+      # The title screen and the loader's version resource carry the version.
       - name: Configure
         shell: pwsh
         env:
@@ -73,26 +66,11 @@ jobs:
         # The checks that read the game or the private test mods skip themselves here.
         run: ctest --test-dir build --output-on-failure
 
-      - name: Test Canopy Studio
-        run: dotnet test tests/studio/CanopyStudio.Tests -c Release
-
-      - name: Publish Canopy Studio
-        # Self-contained, so a player needs no .NET install. canopy_core.dll comes from the build
-        # above, which CanopyStudio.Core.csproj copies in.
-        env:
-          VERSION: ${{ steps.version.outputs.value }}
-          NUMBERS: ${{ steps.version.outputs.numbers }}
-        shell: pwsh
-        run: >
-          dotnet publish src/CanopyStudio/CanopyStudio/CanopyStudio.csproj -c Release -r win-x64
-          --self-contained -o build/studio-win
-          "-p:Version=$env:NUMBERS" "-p:InformationalVersion=$env:VERSION"
-
       - name: Package and verify dependencies
         shell: pwsh
         env:
           VERSION: ${{ steps.version.outputs.value }}
-        run: pwsh .github/scripts/package_windows.ps1 -BuildDir build -StudioDir build/studio-win -Version $env:VERSION -OutDir dist
+        run: pwsh .github/scripts/package_windows.ps1 -BuildDir build -Version $env:VERSION -OutDir dist
 
       - uses: actions/upload-artifact@v4
         with:

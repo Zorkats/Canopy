@@ -532,8 +532,20 @@ void TestAddressLists() {
     const std::set<std::string>& shared = lists["kSharedRequirements"];
     CHECK(!shared.empty());
 
-    for (const char* folder : {"Canopy", "VillageQoL", "common"}) {
-        for (const auto& item : fs::directory_iterator(kSource / "src" / folder)) {
+    // The loader's sources, and those of the mods CANOPY_MOD_SOURCE_DIRS names.
+    std::vector<fs::path> folders = {kSource / "src" / "Canopy", kSource / "src" / "common"};
+    const std::string mods = CANOPY_MOD_SOURCE_DIRS;
+    for (size_t begin = 0; begin < mods.size();) {
+        const size_t end = std::min(mods.find('|', begin), mods.size());
+        folders.push_back(fs::u8path(mods.substr(begin, end - begin)));
+        begin = end + 1;
+    }
+    for (const fs::path& folder : folders) {
+        if (!CHECK(fs::is_directory(folder))) {
+            std::printf("  %s is not a folder\n", folder.u8string().c_str());
+            continue;
+        }
+        for (const auto& item : fs::directory_iterator(folder)) {
             if (item.path().extension() != ".cpp") {
                 continue;
             }

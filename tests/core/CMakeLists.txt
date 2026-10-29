@@ -19,7 +19,16 @@ add_executable(canopy_core_tests
 )
 
 target_link_libraries(canopy_core_tests PRIVATE CanopyCore)
-target_compile_definitions(canopy_core_tests PRIVATE CANOPY_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+# The mod source folders the address-list check covers, joined by |.
+set(canopy_mod_sources "")
+foreach(folder IN LISTS CANOPY_MOD_SOURCE_DIRS)
+    file(TO_CMAKE_PATH "${folder}" folder)
+    list(APPEND canopy_mod_sources "${folder}")
+endforeach()
+string(JOIN "|" canopy_mod_sources ${canopy_mod_sources})
+target_compile_definitions(canopy_core_tests PRIVATE
+        CANOPY_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+        CANOPY_MOD_SOURCE_DIRS="${canopy_mod_sources}")
 
 # The archive reader against synthetic archives and, when installed, the
 # game's own, opened read only. Set CANOPY_GAME_DIR for another install.

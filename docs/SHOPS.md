@@ -53,7 +53,7 @@ Shop 0 now sells three of that item a day, and every offering pool can give two 
 | Key | Meaning |
 |---|---|
 | `item` | Required. A mod item by key or `Mod.Key`, or a vanilla item id or enum name. |
-| `shop` | Required. The shop, by the `storeID` its vanilla sales have: `0`, `1`, `2`, `3`, `4` or `99`. [Canopy Studio](../README.md#canopy-studio)'s game browser lists each shop's `storesales` rows. |
+| `shop` | Required. The shop, by the `storeID` its vanilla sales have: `0`, `1`, `2`, `3`, `4` or `99`. [Canopy Studio](https://github.com/Zorkats/CanopyStudio)'s game browser lists each shop's `storesales` rows. |
 | `stock` | How many the shop has, 1 to 99, or `unlimited`. Default `unlimited`. |
 | `restock` | With a stock: `daily` fills it again every day, `never` leaves what was bought gone for good. Default `daily`. |
 | `seasons` | The seasons it is listed in: `spring`, `summer`, `autumn` and `winter`, or `all`. Default `all`. |
@@ -110,7 +110,7 @@ The box the blacksmith hands the tool over in is an object made for that tool, a
 ## Naming pools and items
 
 - A pool, a shop's item or a vanilla tool is named by its id, as a number, or by its enum name as the game writes it, with case.
-- [Canopy Studio](../README.md#canopy-studio)'s game browser shows every table's rows with their ids and fields.
+- [Canopy Studio](https://github.com/Zorkats/CanopyStudio)'s game browser shows every table's rows with their ids and fields.
 - A number in a mod id band, such as a mod item's `1500000001`, is refused: name a mod item or flag by its key, so the section follows it if its id ever changes.
 - A vanilla item id is checked against `item.dat` as the table loads, if `item.dat` has already loaded, and at the title otherwise. An enum name is looked up as the table loads.
 

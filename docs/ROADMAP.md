@@ -28,7 +28,7 @@ Done. `dinput8.dll` loads every DLL in `mods`, gives it the API v1 table, and sh
 
 ## M0: Repository
 
-One repository holds the loader, the SDK header, VillageQoL and the example mod. They change together and share the game's address table (`src/common/game_retail.h`), so splitting them would mean syncing that table between repositories. Mod authors only need `sdk/canopy_api.h` and the docs, which ship as their own download.
+This repository holds the loader, the SDK header, the game's address table (`src/common/game_retail.h`) and the example mod. [VillageQoL](https://github.com/Zorkats/VillageQoL) and [Canopy Studio](https://github.com/Zorkats/CanopyStudio) have their own repositories and take Canopy as a git submodule, so the address table stays in one place. Mod authors only need `sdk/canopy_api.h` and the docs, which ship as their own download.
 
 - [x] `LICENSE` (MIT).
 - [x] `vcpkg.json` manifest, so MinHook installs on its own.
@@ -41,6 +41,7 @@ One repository holds the loader, the SDK header, VillageQoL and the example mod.
 - [x] `.gitattributes` for consistent line endings.
 - [x] `THIRD_PARTY_NOTICES.txt` with MinHook's license, shipped in the Canopy package.
 - [x] README build steps updated to the presets.
+- [x] VillageQoL and Canopy Studio moved to their own repositories, each with its own workflows and releases.
 
 Research material (reverse engineering notes, save tools, game data dumps) stays out of the repository.
 

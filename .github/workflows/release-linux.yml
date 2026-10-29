@@ -1,11 +1,11 @@
 name: Build (Linux)
 
-# Builds libcanopy_core.so, the canopy tool and Canopy Studio for Linux, runs the tests, and
-# packages them with .github/scripts/package_linux.sh, which refuses a binary that would not
-# start on an older distribution. The game and the Canopy loader stay Windows and run through
-# Proton, so this job builds no loader. The tarballs are a workflow artifact; build.yml,
-# release.yml and nightly.yml call this same workflow. Adapted from G-Diffuser's
-# release-linux.yml.
+# Builds libcanopy_core.so and the canopy tool for Linux, runs the tests, and packages them with
+# .github/scripts/package_linux.sh, which refuses a binary that would not start on an older
+# distribution. The game and the Canopy loader stay Windows and run through Proton, so this job
+# builds no loader. Canopy Studio builds in its own repository. The tarball is a workflow
+# artifact; build.yml, release.yml and nightly.yml call this same workflow. Adapted from
+# G-Diffuser's release-linux.yml.
 
 on:
   workflow_call:
@@ -33,32 +33,31 @@ jobs:
     # SteamOS to rolling ones such as CachyOS and Arch.
     container: ubuntu:22.04
 
+    # In a container a step runs under sh, which is dash on Ubuntu and has no ${GITHUB_SHA::7}.
+    defaults:
+      run:
+        shell: bash
+
     env:
       DEBIAN_FRONTEND: noninteractive
       CC: gcc-12
       CXX: g++-12
-      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
-      DOTNET_NOLOGO: '1'
 
     steps:
       - name: Install build tools
         # git has to exist before actions/checkout runs, or checkout falls back to a source
-        # download without history. libicu is what the .NET SDK needs to start.
+        # download without history.
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
             build-essential gcc-12 g++-12 cmake ninja-build \
-            git ca-certificates curl python3 libicu70
+            git ca-certificates python3
           git config --global --add safe.directory '*'
 
       - uses: actions/checkout@v4
         with:
           # The commit time pins the tarballs' file times.
           fetch-depth: 1
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
 
       - name: Resolve version
         id: version
@@ -69,10 +68,7 @@ jobs:
           value="$REQUESTED_VERSION"
           if [ -z "$value" ] && [ "$GITHUB_REF_TYPE" = tag ]; then value="${GITHUB_REF_NAME#v}"; fi
           if [ -z "$value" ]; then value="dev-${GITHUB_SHA::7}"; fi
-          # .NET wants three numbers for the assembly version; dev builds read as 0.0.0.
-          numbers="$(printf '%s' "$value" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+' || echo 0.0.0)"
           echo "value=$value" >> "$GITHUB_OUTPUT"
-          echo "numbers=$numbers" >> "$GITHUB_OUTPUT"
 
       - name: Build
         # No vcpkg: MinHook is the loader's, and the loader is Windows only.
@@ -86,26 +82,12 @@ jobs:
         # The checks that read the game or the private test mods skip themselves here.
         run: ctest --test-dir build --output-on-failure
 
-      - name: Test Canopy Studio
-        run: dotnet test tests/studio/CanopyStudio.Tests -c Release
-
-      - name: Publish Canopy Studio
-        # Self-contained, so a player needs no .NET install. libcanopy_core.so comes from the
-        # build above, which CanopyStudio.Core.csproj copies in.
-        env:
-          VERSION: ${{ steps.version.outputs.value }}
-          NUMBERS: ${{ steps.version.outputs.numbers }}
-        run: |
-          dotnet publish src/CanopyStudio/CanopyStudio/CanopyStudio.csproj -c Release -r linux-x64 \
-            --self-contained -o build/studio-linux \
-            "-p:Version=$NUMBERS" "-p:InformationalVersion=$VERSION"
-
       - name: Package and verify portability
         env:
           VERSION: ${{ steps.version.outputs.value }}
         run: |
           export SOURCE_DATE_EPOCH="$(git log -1 --pretty=%ct)"
-          bash .github/scripts/package_linux.sh build build/studio-linux "$VERSION" dist
+          bash .github/scripts/package_linux.sh build "$VERSION" dist
 
       - uses: actions/upload-artifact@v4
         with:
