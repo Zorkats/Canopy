@@ -482,7 +482,7 @@ void TestBuiltInFiles() {
             }
         }
     }
-    CHECK(builds.size() >= 2);
+    CHECK(!builds.empty());
     for (const auto& build : builds) {
         CHECK(build.second == declared);
         for (const std::string& name : declared) {

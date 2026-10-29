@@ -48,7 +48,8 @@ except ImportError:
     sys.exit("Needs capstone and numpy: pip install -r scripts/requirements.txt")
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUILDS_PATH = os.path.join(ROOT, "src", "common", "game_builds.txt")
+# CANOPY_BUILDS_FILE names another builds file, as the build's own setting does.
+BUILDS_PATH = os.environ.get("CANOPY_BUILDS_FILE") or os.path.join(ROOT, "src", "common", "game_builds.txt")
 PATTERNS_PATH = os.path.join(ROOT, "src", "common", "game_addresses.txt")
 RETAIL_PATH = os.path.join(ROOT, "src", "common", "game_retail.h")
 SOURCE_PATH = os.path.join(ROOT, "src")

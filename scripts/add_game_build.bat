@@ -17,7 +17,9 @@ rem folder configured, and Visual Studio 2022 or its Build Tools.
 setlocal EnableExtensions
 set "ROOT=%~dp0.."
 set "CANOPY=%ROOT%\build\src\CanopyTools\canopy.exe"
+rem CANOPY_BUILDS_FILE names another builds file, as the build's own setting does.
 set "BUILDS=%ROOT%\src\common\game_builds.txt"
+if defined CANOPY_BUILDS_FILE set "BUILDS=%CANOPY_BUILDS_FILE%"
 set "SAMPLES=%ROOT%\_work\bin"
 
 set "EXE="
@@ -84,7 +86,7 @@ set "RESULT=%ERRORLEVEL%"
 popd
 if not "%RESULT%"=="0" exit /b 1
 echo.
-echo Added the build. Review the diff of src\common\game_builds.txt before you commit it.
+echo Added the build. Review the diff of %BUILDS% before you commit it.
 exit /b 0
 
 :noExe

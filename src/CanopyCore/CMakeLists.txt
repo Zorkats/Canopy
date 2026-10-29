@@ -66,11 +66,20 @@ add_library(CanopyCore STATIC
 target_include_directories(CanopyCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # The address patterns and checked builds, built in so the loader needs no
-# file beside it.
-foreach(embedded "kPatterns;game_addresses" "kBuilds;game_builds")
+# file beside it. A local build can build in another builds file, such as one
+# kept outside the repository; the CANOPY_BUILDS_FILE environment variable
+# sets the default, which add_game_build.bat and gen_address_patterns.py use too.
+if(DEFINED ENV{CANOPY_BUILDS_FILE})
+    set(builds_default "$ENV{CANOPY_BUILDS_FILE}")
+else()
+    set(builds_default "${PROJECT_SOURCE_DIR}/src/common/game_builds.txt")
+endif()
+set(CANOPY_BUILDS_FILE "${builds_default}" CACHE FILEPATH "The checked game builds built into Canopy")
+foreach(embedded "kPatterns;game_addresses;${PROJECT_SOURCE_DIR}/src/common/game_addresses.txt"
+        "kBuilds;game_builds;${CANOPY_BUILDS_FILE}")
     list(GET embedded 0 name)
     list(GET embedded 1 stem)
-    set(input ${PROJECT_SOURCE_DIR}/src/common/${stem}.txt)
+    list(GET embedded 2 input)
     set(output ${CMAKE_CURRENT_BINARY_DIR}/${stem}_text.cpp)
     add_custom_command(
             OUTPUT ${output}
