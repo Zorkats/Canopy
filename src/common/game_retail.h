@@ -820,14 +820,14 @@ constexpr int64_t kCommandNext2 = 132;
 // Event skip. The pad manager keeps the command queries made this frame, by
 // the receivers waiting on input, as a vector of 192-byte entries. An entry's
 // +16 points at a holder of the command's record, whose first field is the
-// command id; the beta skip passes over records of kind 2.
+// command id; the skip passes over records of kind 2.
 constexpr size_t kCommandQueriesBegin = 608;
 GAME_FIELD(CommandQueriesEnd, 616);
 constexpr size_t kCommandQuerySize = 192;
 GAME_FIELD(CommandQueryRecord, 16);
 GAME_FIELD(CommandRecordKind, 120);
 constexpr int32_t kCommandKindIgnored = 2;
-// The talk and event commands the beta skip runs past: CMD_NEXT,
+// The talk and event commands the skip runs past: CMD_NEXT,
 // CMD_FAST_NEXT, CMD_NEXT_2, CMD_FASTFORWARD, CMD_BACKLOG and CMD_AUTO_TEXT
 // from the framework's table, CMD_TALK_BACKLOG_VIEW and
 // CMD_UNIT_ITEM_INVENTORY_DETAIL from the game's. Talk asks for the backlog
