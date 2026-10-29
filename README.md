@@ -103,6 +103,30 @@ All hooks enabled, before game init.
 
 When you report a problem, include `Canopy.log`.
 
+## What Canopy cannot do yet
+
+The main limits are below. Each guide under [docs](docs) lists its own in full, in its **Known limitations** section.
+
+**For players:**
+
+- **Mods are read when the game starts.** Settings on the Mod Settings page apply at once, but a new or changed mod, its files, its `canopy.ini` or its Lua take a restart.
+- **Settings have no text fields.** A setting is a toggle, a choice, a slider, a key or button, or a button row. The game's options menu has no text entry to build on.
+- **After a game update, features that write saves stay off** until a Canopy release checks the new build. See [When something goes wrong](#when-something-goes-wrong).
+
+**For mod authors:**
+
+| Area | Not possible yet |
+|---|---|
+| Reloading | A mod cannot be unloaded or reloaded while the game runs. Restart the game to test a new build. Reloading in a developer mode is [planned](docs/ROADMAP.md#m5-developer-tools). |
+| Models and art | No new 3D models. Furniture is a copy of vanilla furniture, a skin only swaps textures, and a villager keeps its base's portrait and animations. Dish art and whistle guide art are the base's too. |
+| Items | Mod items live in the bag and tool slots only. They cannot go in storage chests, be shipped or sold, or appear in the catalog, and they do not count for quests, letters, the encyclopedia, collections or achievements. See [ITEMS.md](docs/ITEMS.md#known-limitations). |
+| Villagers | No talk lines, gifts or birthday of their own. A villager's position is not saved, so after a load it starts at its starting place. See [VILLAGERS.md](docs/VILLAGERS.md#known-limitations). |
+| Flags | Mod flags are for Lua only. The game's tables cannot name one. |
+| Tables | 14 of the game's tables take neither patches nor rows, because Canopy has no layout for them. [PATCHES.md](docs/PATCHES.md#known-limitations) names them. |
+| Lua | The Lua API covers a mod's own items and flags only, not vanilla items, flags or shops. Game commands are not documented, and Canopy does not check their arguments. |
+
+Some features work in Canopy's checks but have not been tried in a running game yet: crafting and cooking with mod recipes, `recipe` items, how mod icons look in the game's menus, and the whistle menu with many more than the vanilla eleven whistles.
+
 ## Making your own mod
 
 A mod is a 64-bit DLL in the `mods` folder that exports one function. The loader gives it a table of functions to add settings, sliders and buttons to the Mod Settings page, keep data with each save, run code every frame or on game events, read keys, show the game's toasts and Yes/No popup, and find and hook game functions. A mod can also be only a folder of replacement game files, with no code: see [Replace game files](docs/MODDING.md#replace-game-files). Or it can be a Lua script, with no DLL or compiler, that runs in a sandbox inside the game's own script engine: see [docs/LUA.md](docs/LUA.md). A mod can also add its own items, furniture, villagers, whistles, recipes and art: see [docs/ITEMS.md](docs/ITEMS.md), [docs/OBJECTS.md](docs/OBJECTS.md), [docs/VILLAGERS.md](docs/VILLAGERS.md), [docs/WHISTLES.md](docs/WHISTLES.md), [docs/RECIPES.md](docs/RECIPES.md) and [docs/ART.md](docs/ART.md).
