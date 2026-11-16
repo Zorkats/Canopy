@@ -613,7 +613,7 @@ A fixed offset breaks when the developer ships a new build. Two version 2 functi
 
 | Call | Use |
 |---|---|
-| `GameBuild()` | The running build's id. Log it, and compare it with the build you reverse engineered. The current Steam build, Ver. 1.30, is `0x6ABD400D`. |
+| `GameBuild()` | The running build's id. Log it, and compare it with the build you reverse engineered. The current Steam build, Ver. 1.31, is `0x6AE44401`. |
 | `FindPattern(pattern)` | Finds a function by its bytes, wherever it moved. Wildcards (`??`) cover the bytes that change between builds. |
 
 The example finds the title screen's constructor this way:

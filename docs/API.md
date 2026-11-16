@@ -282,7 +282,7 @@ uint32_t GameBuild(void);
 
 **Version 2.** An id of the running `village.exe` build: the `TimeDateStamp` in its PE header, which changes with every build the developer ships. Any thread.
 
-Compare it with the build you reverse engineered, and log or refuse when it differs. The current Steam build, Ver. 1.30, is `0x6ABD400D`.
+Compare it with the build you reverse engineered, and log or refuse when it differs. The current Steam build, Ver. 1.31, is `0x6AE44401`.
 
 ```c
 if (api->GameBuild() != 0x6ABD400D) {
